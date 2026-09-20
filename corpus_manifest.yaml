@@ -1,0 +1,248 @@
+sources:
+  - source_type: "nvd"
+    doc_id: "nvd_CVE-2024-3400"
+    url: "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2024-3400"
+    title: "CVE-2024-3400"
+    cve_ids: ["CVE-2024-3400"]
+  - source_type: "nvd"
+    doc_id: "nvd_CVE-2024-0012"
+    url: "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2024-0012"
+    title: "CVE-2024-0012"
+    cve_ids: ["CVE-2024-0012"]
+  - source_type: "nvd"
+    doc_id: "nvd_CVE-2024-9474"
+    url: "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2024-9474"
+    title: "CVE-2024-9474"
+    cve_ids: ["CVE-2024-9474"]
+  - source_type: "nvd"
+    doc_id: "nvd_CVE-2024-3393"
+    url: "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2024-3393"
+    title: "CVE-2024-3393"
+    cve_ids: ["CVE-2024-3393"]
+  - source_type: "nvd"
+    doc_id: "nvd_CVE-2024-5921"
+    url: "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2024-5921"
+    title: "CVE-2024-5921"
+    cve_ids: ["CVE-2024-5921"]
+  - source_type: "nvd"
+    doc_id: "nvd_CVE-2024-8686"
+    url: "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2024-8686"
+    title: "CVE-2024-8686"
+    cve_ids: ["CVE-2024-8686"]
+  - source_type: "nvd"
+    doc_id: "nvd_CVE-2024-21887"
+    url: "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2024-21887"
+    title: "CVE-2024-21887"
+    cve_ids: ["CVE-2024-21887"]
+  - source_type: "nvd"
+    doc_id: "nvd_CVE-2023-46805"
+    url: "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2023-46805"
+    title: "CVE-2023-46805"
+    cve_ids: ["CVE-2023-46805"]
+  - source_type: "nvd"
+    doc_id: "nvd_CVE-2024-21762"
+    url: "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2024-21762"
+    title: "CVE-2024-21762"
+    cve_ids: ["CVE-2024-21762"]
+  - source_type: "nvd"
+    doc_id: "nvd_CVE-2024-24919"
+    url: "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2024-24919"
+    title: "CVE-2024-24919"
+    cve_ids: ["CVE-2024-24919"]
+  - source_type: "nvd"
+    doc_id: "nvd_CVE-2024-20353"
+    url: "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2024-20353"
+    title: "CVE-2024-20353"
+    cve_ids: ["CVE-2024-20353"]
+  - source_type: "nvd"
+    doc_id: "nvd_CVE-2024-20359"
+    url: "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2024-20359"
+    title: "CVE-2024-20359"
+    cve_ids: ["CVE-2024-20359"]
+  - source_type: "nvd"
+    doc_id: "nvd_CVE-2023-4966"
+    url: "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2023-4966"
+    title: "CVE-2023-4966"
+    cve_ids: ["CVE-2023-4966"]
+  - source_type: "kev"
+    doc_id: "kev_CVE-2024-3400"
+    url: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+    title: "CISA KEV CVE-2024-3400"
+    cve_ids: ["CVE-2024-3400"]
+  - source_type: "kev"
+    doc_id: "kev_CVE-2024-0012"
+    url: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+    title: "CISA KEV CVE-2024-0012"
+    cve_ids: ["CVE-2024-0012"]
+  - source_type: "kev"
+    doc_id: "kev_CVE-2024-9474"
+    url: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+    title: "CISA KEV CVE-2024-9474"
+    cve_ids: ["CVE-2024-9474"]
+  - source_type: "kev"
+    doc_id: "kev_CVE-2024-3393"
+    url: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+    title: "CISA KEV CVE-2024-3393"
+    cve_ids: ["CVE-2024-3393"]
+  - source_type: "kev"
+    doc_id: "kev_CVE-2024-5921"
+    url: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+    title: "CISA KEV CVE-2024-5921"
+    cve_ids: ["CVE-2024-5921"]
+  - source_type: "kev"
+    doc_id: "kev_CVE-2024-8686"
+    url: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+    title: "CISA KEV CVE-2024-8686"
+    cve_ids: ["CVE-2024-8686"]
+  - source_type: "kev"
+    doc_id: "kev_CVE-2024-21887"
+    url: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+    title: "CISA KEV CVE-2024-21887"
+    cve_ids: ["CVE-2024-21887"]
+  - source_type: "kev"
+    doc_id: "kev_CVE-2023-46805"
+    url: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+    title: "CISA KEV CVE-2023-46805"
+    cve_ids: ["CVE-2023-46805"]
+  - source_type: "kev"
+    doc_id: "kev_CVE-2024-21762"
+    url: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+    title: "CISA KEV CVE-2024-21762"
+    cve_ids: ["CVE-2024-21762"]
+  - source_type: "kev"
+    doc_id: "kev_CVE-2024-24919"
+    url: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+    title: "CISA KEV CVE-2024-24919"
+    cve_ids: ["CVE-2024-24919"]
+  - source_type: "kev"
+    doc_id: "kev_CVE-2024-20353"
+    url: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+    title: "CISA KEV CVE-2024-20353"
+    cve_ids: ["CVE-2024-20353"]
+  - source_type: "kev"
+    doc_id: "kev_CVE-2024-20359"
+    url: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+    title: "CISA KEV CVE-2024-20359"
+    cve_ids: ["CVE-2024-20359"]
+  - source_type: "kev"
+    doc_id: "kev_CVE-2023-4966"
+    url: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+    title: "CISA KEV CVE-2023-4966"
+    cve_ids: ["CVE-2023-4966"]
+  - source_type: "vendor"
+    doc_id: "vendor_paloalto_CVE-2024-3400"
+    url: "https://security.paloaltonetworks.com/CVE-2024-3400"
+    title: "PAN-OS CVE-2024-3400 advisory"
+    cve_ids: ["CVE-2024-3400"]
+  - source_type: "vendor"
+    doc_id: "vendor_paloalto_CVE-2024-0012"
+    url: "https://security.paloaltonetworks.com/CVE-2024-0012"
+    title: "PAN-OS CVE-2024-0012 advisory"
+    cve_ids: ["CVE-2024-0012"]
+  - source_type: "vendor"
+    doc_id: "vendor_paloalto_CVE-2024-9474"
+    url: "https://security.paloaltonetworks.com/CVE-2024-9474"
+    title: "PAN-OS CVE-2024-9474 advisory"
+    cve_ids: ["CVE-2024-9474"]
+  - source_type: "vendor"
+    doc_id: "vendor_paloalto_CVE-2024-3393"
+    url: "https://security.paloaltonetworks.com/CVE-2024-3393"
+    title: "PAN-OS CVE-2024-3393 advisory"
+    cve_ids: ["CVE-2024-3393"]
+  - source_type: "vendor"
+    doc_id: "vendor_paloalto_CVE-2024-5921"
+    url: "https://security.paloaltonetworks.com/CVE-2024-5921"
+    title: "PAN-OS CVE-2024-5921 advisory"
+    cve_ids: ["CVE-2024-5921"]
+  - source_type: "vendor"
+    doc_id: "vendor_paloalto_CVE-2024-8686"
+    url: "https://security.paloaltonetworks.com/CVE-2024-8686"
+    title: "PAN-OS CVE-2024-8686 advisory"
+    cve_ids: ["CVE-2024-8686"]
+  - source_type: "threatintel"
+    doc_id: "ti_volexity_cve-2024-3400"
+    url: "https://www.volexity.com/blog/2024/04/12/zero-day-exploitation-of-unauthenticated-remote-code-execution-vulnerability-in-globalprotect-cve-2024-3400/"
+    title: "Volexity CVE-2024-3400 blog"
+    cve_ids: ["CVE-2024-3400"]
+  - source_type: "threatintel"
+    doc_id: "ti_unit42_cve-2024-3400"
+    url: "https://unit42.paloaltonetworks.com/cve-2024-3400/"
+    title: "Unit 42 CVE-2024-3400 brief"
+    cve_ids: ["CVE-2024-3400"]
+  - source_type: "threatintel"
+    doc_id: "ti_watchtowr_cve-2024-3400"
+    url: "https://labs.watchtowr.com/palo-alto-putting-the-protecc-in-globalprotect-cve-2024-3400/"
+    title: "watchTowr CVE-2024-3400 analysis"
+    cve_ids: ["CVE-2024-3400"]
+  - source_type: "threatintel"
+    doc_id: "gov_cisa_cve-2024-3400"
+    url: "https://www.cisa.gov/news-events/alerts/2024/04/12/palo-alto-networks-releases-guidance-vulnerability-pan-os-cve-2024-3400"
+    title: "CISA alert CVE-2024-3400"
+    cve_ids: ["CVE-2024-3400"]
+  - source_type: "threatintel"
+    doc_id: "ti_volexity_ivanti"
+    url: "https://www.volexity.com/blog/2024/01/10/active-exploitation-of-two-zero-day-vulnerabilities-in-ivanti-connect-secure-vpn/"
+    title: "Volexity Ivanti report"
+    cve_ids: ["CVE-2023-46805", "CVE-2024-21887"]
+  - source_type: "threatintel"
+    doc_id: "ti_talos_arcanedoor"
+    url: "https://blog.talosintelligence.com/arcanedoor-new-espionage-focused-campaign-found-targeting-perimeter-network-devices/"
+    title: "Talos ArcaneDoor report"
+    cve_ids: ["CVE-2024-20353", "CVE-2024-20359"]
+  - source_type: "threatintel"
+    doc_id: "ti_unit42_lunar_peek"
+    url: "https://unit42.paloaltonetworks.com/cve-2024-0012-cve-2024-9474/"
+    title: "Unit 42 PAN-OS Lunar Peek brief"
+    cve_ids: ["CVE-2024-0012", "CVE-2024-9474"]
+  - source_type: "attack"
+    doc_id: "attack_T1190"
+    url: "https://attack.mitre.org/techniques/T1190/"
+    title: "Exploit Public-Facing Application"
+    cve_ids: []
+  - source_type: "attack"
+    doc_id: "attack_T1133"
+    url: "https://attack.mitre.org/techniques/T1133/"
+    title: "External Remote Services"
+    cve_ids: []
+  - source_type: "attack"
+    doc_id: "attack_T1078"
+    url: "https://attack.mitre.org/techniques/T1078/"
+    title: "Valid Accounts"
+    cve_ids: []
+  - source_type: "attack"
+    doc_id: "attack_T1059_004"
+    url: "https://attack.mitre.org/techniques/T1059/004/"
+    title: "Command and Scripting Interpreter: Unix Shell"
+    cve_ids: []
+  - source_type: "attack"
+    doc_id: "attack_T1053_003"
+    url: "https://attack.mitre.org/techniques/T1053/003/"
+    title: "Scheduled Task/Job: Cron"
+    cve_ids: []
+  - source_type: "attack"
+    doc_id: "attack_T1105"
+    url: "https://attack.mitre.org/techniques/T1105/"
+    title: "Ingress Tool Transfer"
+    cve_ids: []
+  - source_type: "attack"
+    doc_id: "attack_T1041"
+    url: "https://attack.mitre.org/techniques/T1041/"
+    title: "Exfiltration Over C2 Channel"
+    cve_ids: []
+  - source_type: "attack"
+    doc_id: "attack_T1068"
+    url: "https://attack.mitre.org/techniques/T1068/"
+    title: "Exploitation for Privilege Escalation"
+    cve_ids: []
+  - source_type: "attack"
+    doc_id: "attack_T1070_004"
+    url: "https://attack.mitre.org/techniques/T1070/004/"
+    title: "Indicator Removal: File Deletion"
+    cve_ids: []
+
+targets_by_type:
+  nvd: 13
+  kev: 13
+  vendor: 6
+  threatintel: 7
+  attack: 9

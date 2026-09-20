@@ -1,0 +1,20 @@
+torch --index-url https://download.pytorch.org/whl/cpu
+transformers>=4.44
+sentence-transformers>=3.0
+chromadb>=0.5
+rank-bm25
+google-genai
+groq
+trafilatura
+requests
+pydantic>=2
+pyyaml
+numpy
+pandas
+matplotlib
+tqdm
+pytest
+python-dotenv
+sqlalchemy
+fastapi
+uvicorn

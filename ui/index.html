@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RAG Explorer</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="panel left-panel">
+        <div class="brand-block">
+          <div class="eyebrow">Benchmark explorer</div>
+          <h1>RAG Lab</h1>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Choose RAG type</label>
+          <div id="system-toggle" class="toggle-grid"></div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="question-input">User prompt</label>
+          <textarea id="question-input" rows="7" placeholder="Ask a question about the corpus..."></textarea>
+        </div>
+
+        <button id="run-button" class="primary-button">Run selected system</button>
+        <div id="status" class="status-pill">Idle</div>
+      </aside>
+
+      <main class="panel main-panel">
+        <section class="result-summary">
+          <div>
+            <div class="eyebrow">Current system</div>
+            <h2 id="selected-system">S0</h2>
+          </div>
+          <div class="answer-box">
+            <div class="section-label">Answer</div>
+            <div id="answer-output">Waiting for a run…</div>
+          </div>
+        </section>
+
+        <section class="metrics-grid">
+          <div class="metric-card">
+            <div class="section-label">Model state</div>
+            <div id="thinking-output" class="mono-list">—</div>
+          </div>
+          <div class="metric-card">
+            <div class="section-label">Chain-of-thought</div>
+            <div id="cot-output" class="mono-list">—</div>
+          </div>
+        </section>
+
+        <section class="detail-grid">
+          <div class="detail-card">
+            <div class="section-label">Pre-retrieval</div>
+            <div id="pre-output" class="mono-list">—</div>
+          </div>
+          <div class="detail-card">
+            <div class="section-label">Post-retrieval</div>
+            <div id="post-output" class="mono-list">—</div>
+          </div>
+        </section>
+
+        <section class="detail-card full-width">
+          <div class="section-label">Evidence used</div>
+          <div id="evidence-output" class="evidence-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

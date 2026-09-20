@@ -1,0 +1,49 @@
+seed: 42
+main_llm:
+  provider: gemini
+  model: gemini-3.5-flash-lite
+  temperature: 0
+  max_output_tokens_answer: 400
+  max_output_tokens_json: 700
+  disable_thinking: true
+  rpm: 10
+  rpd_soft: 400
+judge_llm:
+  provider: groq
+  model: openai/gpt-oss-20b
+  temperature: 0
+  max_output_tokens: 400
+  rpm: 25
+  tpm: 10000
+  tpd_soft: 90000
+embedding:
+  model: BAAI/bge-small-en-v1.5
+  query_prefix: "Represent this sentence for searching relevant passages: "
+  batch_size: 32
+reranker:
+  model: BAAI/bge-reranker-base
+  max_length: 384
+  batch_size: 16
+nli:
+  model: cross-encoder/nli-deberta-v3-xsmall
+  max_length: 480
+chunking: {target_words: 180, overlap_words: 30, min_words: 25}
+context: {max_tokens: 2000}
+budget: {max_llm_calls: 8, reserve_final: 1}
+retrieval:
+  rrf_k: 60
+  s0_k: 5
+  s1: {per_query_dense: 10, per_query_bm25: 10, hyde_dense: 10, final_k: 5}
+  s2: {dense: 30, bm25: 30, candidates: 30, keep_k: 6}
+  s3: {dense: 20, bm25: 20, per_query_k: 10, keep_k: 6, max_subqueries: 3}
+  s4: {k: 8, reretrieve_k: 3}
+  s5: {dense: 30, bm25: 30, k: 4, max_searches: 4, max_agent_calls: 5}
+  s6a: {dense: 30, bm25: 30, k: 5, final_k: 6}
+  s6b: {k: 10, min_keep: 2, max_keep: 6, score_threshold: 3, max_regen: 2}
+  s6c: {dense: 20, bm25: 20, k_candidates: 15, keep_per_subq: 3, max_rounds: 3, max_subq: 4}
+post:
+  tau: 0.15
+  compress_tokens: 1500
+paths: {chunks: data/processed/chunks.jsonl, chroma: data/index/chroma,
+        bm25: data/index/bm25.pkl, questions: data/questions/questions.jsonl,
+        results: results, cache: cache/llm_cache.sqlite}

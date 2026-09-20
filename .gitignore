@@ -1,0 +1,32 @@
+# Local secrets and environment files
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+ENV/
+.envrc
+
+# Python bytecode and tooling caches
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Runtime/generated data
+cache/
+results/
+data/index/
+*.sqlite
+*.sqlite3
+*.log
+
+# OS/editor noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
