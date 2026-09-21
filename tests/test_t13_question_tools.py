@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from ragc.eval.make_questions import build_question_catalog, write_question_file
@@ -44,3 +45,33 @@ def test_validation_accepts_built_question_file(tmp_path):
     assert status["ok"] is True
     assert status["total"] == 40
     assert status["counts"]["single_fact"] == 7
+
+
+def test_question_catalog_uses_real_chunk_snippets_when_available(tmp_path):
+    chunks_path = tmp_path / "data" / "processed" / "chunks.jsonl"
+    chunks_path.parent.mkdir(parents=True)
+    chunk = {
+        "chunk_id": "nvd_CVE-2024-3400#000",
+        "doc_id": "nvd_CVE-2024-3400",
+        "source_type": "nvd",
+        "title": "CVE-2024-3400",
+        "section": "Overview",
+        "url": "https://example.test",
+        "date": None,
+        "cve_ids": ["CVE-2024-3400"],
+        "header": "CVE-2024-3400 - Overview",
+        "text": "NVD lists CVE-2024-3400 as a command injection issue affecting PAN-OS GlobalProtect.",
+        "n_words": 11,
+    }
+    chunks_path.write_text(json.dumps(chunk) + "\n", encoding="utf-8")
+
+    rows = build_question_catalog(chunks_path=chunks_path)
+    first = rows[0]
+
+    assert first["gold_evidence"][0]["chunk_id"] == "nvd_CVE-2024-3400#000"
+    assert first["gold_evidence"][0]["snippet"] in chunk["text"]
+
+    questions_path = tmp_path / "data" / "questions" / "questions.jsonl"
+    write_question_file(rows, questions_path)
+    status = validate_question_file(questions_path)
+    assert status["ok"] is True

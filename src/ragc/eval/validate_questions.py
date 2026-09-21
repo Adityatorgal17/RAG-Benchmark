@@ -151,7 +151,8 @@ def validate_question_file(path: str | Path) -> dict:
         ok = False
         errors.append("Question qids are not in the plan-ordered sequence: expected d01..d10 then t01..t30")
 
-    chunks_path = file_path.parent.parent / "data/processed/chunks.jsonl"
+    data_root = file_path.parent.parent if file_path.parent.name == "questions" else Path("data")
+    chunks_path = data_root / "processed" / "chunks.jsonl"
     chunk_lookup = _load_chunk_lookup(chunks_path)
     if chunk_lookup:
         for row in results:

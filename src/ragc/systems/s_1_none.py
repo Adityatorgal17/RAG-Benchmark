@@ -7,7 +7,7 @@ its call budget to a single final generation turn.
 
 from __future__ import annotations
 
-from ragc.generation.generator import generate
+from ragc.generation.generator import extract_citations, generate
 from ragc.schemas import EvidenceItem, SystemResult
 from ragc.systems.base import System
 
@@ -28,6 +28,6 @@ class S1NoRetrievalSystem(System):
             cited_ids=[],
             candidate_ids=[],
             final_evidence=[],
-            usage={"llm_calls": self.budget.used, "prompt_tokens": 0, "completion_tokens": 0, "local_s": 0.0, "wall_s": 0.0},
+            usage=self.usage(),
             trace=self.trace,
         )

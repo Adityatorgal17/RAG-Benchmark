@@ -8,6 +8,7 @@ that the question set remains stable across all system runs.
 from __future__ import annotations
 
 import json
+import re
 from collections import OrderedDict
 from pathlib import Path
 
@@ -116,18 +117,99 @@ def _make_gold_answer(qtype: str, idx: int) -> str:
     )
 
 
-def _make_claims(qtype: str, idx: int) -> list[dict[str, str]]:
+def _load_chunks(path: str | Path = "data/processed/chunks.jsonl") -> list[dict]:
+    chunks_path = Path(path)
+    if not chunks_path.exists():
+        return []
+    rows: list[dict] = []
+    with chunks_path.open("r", encoding="utf-8") as fh:
+        for line in fh:
+            if not line.strip():
+                continue
+            try:
+                rows.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+    return rows
+
+
+def _snippet_from_text(text: str, *, min_words: int = 3, max_words: int = 15) -> str:
+    cleaned = re.sub(r"\s+", " ", text or "").strip()
+    if not cleaned:
+        return ""
+    sentences = [item.strip() for item in re.split(r"(?<=[.!?])\s+(?=[A-Z0-9])", cleaned) if item.strip()]
+    source = max(sentences, key=lambda item: len(item.split()), default=cleaned)
+    words = source.split()
+    if len(words) < min_words:
+        words = cleaned.split()
+    return " ".join(words[:max_words])
+
+
+def _preferred_sources(qtype: str) -> list[str]:
+    if qtype == "cross_source":
+        return ["kev", "vendor", "nvd", "threatintel", "attack"]
+    if qtype == "conflict":
+        return ["vendor", "threatintel", "nvd", "kev"]
+    if qtype == "multi_hop":
+        return ["kev", "nvd", "vendor", "threatintel"]
+    if qtype == "single_fact":
+        return ["nvd", "vendor", "kev"]
+    return ["vendor", "nvd", "kev", "threatintel", "attack"]
+
+
+def _select_evidence_chunks(chunks: list[dict], qtype: str, idx: int) -> list[dict]:
+    if not chunks or qtype == "unanswerable":
+        return []
+    by_source: dict[str, list[dict]] = {}
+    for chunk in chunks:
+        text = (chunk.get("text") or "").strip()
+        if len(text.split()) < 8:
+            continue
+        by_source.setdefault(str(chunk.get("source_type") or ""), []).append(chunk)
+
+    selected: list[dict] = []
+    source_count = 2 if qtype in {"multi_hop", "cross_source", "conflict"} else 1
+    for source in _preferred_sources(qtype):
+        candidates = by_source.get(source, [])
+        if not candidates:
+            continue
+        selected.append(candidates[(idx - 1) % len(candidates)])
+        if len(selected) >= source_count:
+            break
+    if not selected:
+        selected.append(chunks[(idx - 1) % len(chunks)])
+    return selected
+
+
+def _make_claims(qtype: str, idx: int, evidence_chunks: list[dict] | None = None) -> list[dict[str, str]]:
     if qtype == "unanswerable":
         return []
+    evidence_chunks = evidence_chunks or []
+    if evidence_chunks:
+        claims = []
+        for j, chunk in enumerate(evidence_chunks, start=1):
+            snippet = _snippet_from_text(chunk.get("text", ""))
+            source = chunk.get("source_type") or "source"
+            claims.append({"id": f"c{j}", "text": f"{source} evidence states: {snippet}"})
+        return claims
     return [
         {"id": f"c{j}", "text": f"Evidence {idx}-{j} supports the answer to this {qtype} question."}
         for j in range(1, 3)
     ]
 
 
-def _make_evidence(qtype: str, idx: int) -> list[dict[str, str]]:
+def _make_evidence(qtype: str, idx: int, evidence_chunks: list[dict] | None = None) -> list[dict[str, str]]:
     if qtype == "unanswerable":
         return []
+    evidence_chunks = evidence_chunks or []
+    if evidence_chunks:
+        rows = []
+        for chunk in evidence_chunks:
+            snippet = _snippet_from_text(chunk.get("text", ""))
+            if snippet:
+                rows.append({"doc_id": chunk.get("doc_id", ""), "chunk_id": chunk.get("chunk_id", ""), "snippet": snippet})
+        if rows:
+            return rows
     doc_id = "nvd_CVE-2024-3400" if qtype != "cross_source" else "vendor_panos"
     snippet = f"evidence for {qtype} question {idx}"
     return [{"doc_id": doc_id, "snippet": snippet}]
@@ -135,7 +217,7 @@ def _make_evidence(qtype: str, idx: int) -> list[dict[str, str]]:
 
 def _make_source_types(qtype: str) -> list[str]:
     if qtype == "unanswerable":
-        return ["nvd", "vendor", "threat_intel"]
+        return ["nvd", "vendor", "threatintel"]
     if qtype == "cross_source":
         return ["nvd", "vendor", "kev"]
     if qtype == "conflict":
@@ -145,25 +227,40 @@ def _make_source_types(qtype: str) -> list[str]:
     return ["nvd", "vendor"]
 
 
-def _build_split_catalog(split: str, type_counts: list[tuple[str, int]]) -> list[dict]:
+def _make_grounded_gold_answer(qtype: str, idx: int, evidence_chunks: list[dict]) -> str:
+    if qtype == "unanswerable":
+        return "INSUFFICIENT_EVIDENCE"
+    if not evidence_chunks:
+        return _make_gold_answer(qtype, idx)
+    facts = []
+    for chunk in evidence_chunks:
+        snippet = _snippet_from_text(chunk.get("text", ""))
+        source = chunk.get("source_type") or "source"
+        if snippet:
+            facts.append(f"{source}: {snippet}")
+    return " ".join(facts[:2]) if facts else _make_gold_answer(qtype, idx)
+
+
+def _build_split_catalog(split: str, type_counts: list[tuple[str, int]], chunks: list[dict] | None = None) -> list[dict]:
     entries: list[dict] = []
-    qid_start = 1 if split == "dev" else 1
     qid_counter = 1
+    chunks = chunks or []
     for qtype, count in type_counts:
         for idx in range(1, count + 1):
             qid_num = qid_counter
             qid = f"d{qid_num:02d}" if split == "dev" else f"t{qid_num:02d}"
             question = QUESTION_TEMPLATES[qtype][(idx - 1) % len(QUESTION_TEMPLATES[qtype])]
             answerable = qtype != "unanswerable"
+            evidence_chunks = _select_evidence_chunks(chunks, qtype, idx)
             entry = OrderedDict(
                 qid=qid,
                 split=split,
                 type=qtype,
                 question=question,
                 answerable=answerable,
-                gold_answer=_make_gold_answer(qtype, idx),
-                gold_claims=_make_claims(qtype, idx),
-                gold_evidence=_make_evidence(qtype, idx),
+                gold_answer=_make_grounded_gold_answer(qtype, idx, evidence_chunks),
+                gold_claims=_make_claims(qtype, idx, evidence_chunks),
+                gold_evidence=_make_evidence(qtype, idx, evidence_chunks),
                 gold_source_types=_make_source_types(qtype),
             )
             entries.append(dict(entry))
@@ -171,11 +268,12 @@ def _build_split_catalog(split: str, type_counts: list[tuple[str, int]]) -> list
     return entries
 
 
-def build_question_catalog() -> list[dict]:
+def build_question_catalog(chunks_path: str | Path = "data/processed/chunks.jsonl") -> list[dict]:
     """Return the 40-question benchmark catalog in the exact plan ordering."""
+    chunks = _load_chunks(chunks_path)
     rows: list[dict] = []
-    dev_rows = _build_split_catalog("dev", DEV_TYPE_ORDER)
-    test_rows = _build_split_catalog("test", TEST_TYPE_ORDER)
+    dev_rows = _build_split_catalog("dev", DEV_TYPE_ORDER, chunks)
+    test_rows = _build_split_catalog("test", TEST_TYPE_ORDER, chunks)
     rows.extend(dev_rows)
     rows.extend(test_rows)
     return rows

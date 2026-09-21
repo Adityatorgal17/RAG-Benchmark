@@ -10,11 +10,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
 
 from ragc.config import load_config
 from ragc.eval.judge import judge_answer
-from ragc.llm.fake import FakeLLM
+from ragc.llm.clients import build_judge_llm
 from ragc.llm.keypool import QuotaExhausted
 
 
@@ -58,9 +66,15 @@ def _result_pairs(results_root: Path, system: str | None = None, split: str | No
     return pairs
 
 
-def run_judge(*, system: str | None = None, qids: list[str] | None = None, split: str = "test", max_tokens: int = 90000):
+def run_judge(*, system: str | None = None, qids: list[str] | None = None, split: str = "test", max_tokens: int = 90000, fake: bool = False):
     """Judge saved answers and append new pointwise results in a resumable way."""
     cfg = load_config()
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv()
+    except Exception:
+        pass
     results_root = Path(cfg.paths.results)
     judged_dir = results_root / "judged"
     judged_dir.mkdir(parents=True, exist_ok=True)
@@ -71,7 +85,7 @@ def run_judge(*, system: str | None = None, qids: list[str] | None = None, split
         if "qid" in row and "system" in row:
             seen.add((str(row["qid"]), str(row["system"])))
 
-    llm = FakeLLM()
+    llm = build_judge_llm(cfg, fake=fake)
     judge_rows: list[dict] = []
     used_tokens = 0
     for qid, system_name, payload in _result_pairs(results_root, system=system, split=split):
@@ -88,7 +102,16 @@ def run_judge(*, system: str | None = None, qids: list[str] | None = None, split
         used_tokens += 650
         if used_tokens > max_tokens:
             raise QuotaExhausted(f"Judge token budget exceeded: {used_tokens} > {max_tokens}")
-        row = {"qid": qid, "system": system_name, "question": question, "judgement": result}
+        row = {
+            "qid": qid,
+            "system": system_name,
+            "question": question,
+            "correctness": float(result.get("correctness", 0)) / 2.0,
+            "claim_coverage": (sum(1 for v in (result.get("claims") or {}).values() if v) / max(len(result.get("claims") or {}), 1)) if result.get("claims") else 0.0,
+            "abstained": bool(result.get("abstained", False)),
+            "contradiction_rate": 1.0 if result.get("contradicts_gold") else 0.0,
+            "judgement": result,
+        }
         judge_rows.append(row)
         seen.add(key)
 
@@ -105,6 +128,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--split", default="test")
     parser.add_argument("--qids", default=None)
     parser.add_argument("--max-tokens", type=int, default=90000)
+    parser.add_argument("--fake", action="store_true", help="Use FakeLLM instead of Groq for a dry run.")
     return parser
 
 
@@ -112,7 +136,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     qids = [qid.strip() for qid in args.qids.split(",") if qid.strip()] if args.qids else None
     try:
-        count = run_judge(system=args.system, qids=qids, split=args.split, max_tokens=args.max_tokens)
+        count = run_judge(system=args.system, qids=qids, split=args.split, max_tokens=args.max_tokens, fake=args.fake)
         print(f"Judged {count} answers")
         return 0
     except QuotaExhausted:

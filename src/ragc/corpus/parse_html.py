@@ -13,6 +13,13 @@ from typing import Any
 
 
 def parse_html_document(html: str, *, doc_id: str, source_type: str, url: str) -> dict[str, Any]:
+    try:
+        import trafilatura
+
+        extracted = trafilatura.extract(html, output_format="markdown", include_tables=True, include_comments=False)
+    except Exception:
+        extracted = None
+
     text = re.sub(r"<script.*?</script>", " ", html, flags=re.I | re.S)
     text = re.sub(r"<style.*?</style>", " ", text, flags=re.I | re.S)
     text = re.sub(r"<[^>]+>", "\n", text)
@@ -24,9 +31,12 @@ def parse_html_document(html: str, *, doc_id: str, source_type: str, url: str) -
     title = title_match.group(1).strip() if title_match else doc_id
     title = re.sub(r"\s+", " ", title)
 
-    paragraphs = [p.strip() for p in re.split(r"\n+", text) if p.strip() and len(p.strip().split()) >= 3]
-    body = "\n".join(paragraphs)
-    body = re.sub(r"\s+", " ", body).strip()
+    if extracted and len(extracted.split()) >= 20:
+        body = extracted.strip()
+    else:
+        paragraphs = [p.strip() for p in re.split(r"\n+", text) if p.strip() and len(p.strip().split()) >= 3]
+        body = "\n".join(paragraphs)
+    body = "\n".join(line.strip() for line in body.splitlines() if len(line.strip().split()) >= 3 or line.strip().startswith("#"))
 
     doc = {
         "doc_id": doc_id,

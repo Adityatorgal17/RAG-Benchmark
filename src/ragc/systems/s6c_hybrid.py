@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 
-from ragc.generation.generator import generate
+from ragc.generation.generator import extract_citations, generate
 from ragc.schemas import EvidenceItem, SystemResult
 from ragc.systems.base import System
 
@@ -113,12 +113,21 @@ class S6cHybridSystem(System):
             else:
                 routing.append((sid, tuple(sources), "route" if self.use_routing else "unrestricted"))
 
+            if self.reranker is None:
+                raise RuntimeError("S6c requires a configured reranker")
+
+            scored_hits = []
             for hit in hits:
+                chunk = self.retriever.get_chunk(str(hit.chunk_id))
+                if not chunk:
+                    continue
+                passage = (chunk.get("header", "") + "\n" + chunk.get("text", "")).strip()
+                score = self.reranker.score([(sub_question, passage)])[0]
+                scored_hits.append((hit, float(score), chunk))
+
+            for hit, score, chunk in sorted(scored_hits, key=lambda item: (-item[1], item[0].chunk_id))[:3]:
                 chunk_id = str(hit.chunk_id)
                 if chunk_id in seen:
-                    continue
-                chunk = self.retriever.get_chunk(chunk_id)
-                if not chunk:
                     continue
                 seen.add(chunk_id)
                 grouped.setdefault(sid, []).append({
@@ -126,7 +135,7 @@ class S6cHybridSystem(System):
                     "header": chunk.get("header", ""),
                     "text": chunk.get("text", ""),
                     "source_type": chunk.get("source_type", ""),
-                    "score": float(getattr(hit, "score", 0.0) or 0.0),
+                    "score": score,
                 })
 
         return grouped, routing, seen
@@ -246,9 +255,9 @@ class S6cHybridSystem(System):
             question=question,
             answer=answer,
             abstained=abstained,
-            cited_ids=[item.chunk_id for item in shown],
+            cited_ids=extract_citations(answer),
             candidate_ids=sorted(seen),
             final_evidence=shown,
-            usage={"llm_calls": self.budget.used, "prompt_tokens": 0, "completion_tokens": 0, "local_s": 0.0, "wall_s": 0.0},
+            usage=self.usage(),
             trace=self.trace,
         )

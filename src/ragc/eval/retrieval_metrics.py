@@ -33,12 +33,35 @@ def _chunk_lookup_from_result(result: dict, chunk_store: dict[str, list[str]]) -
     return ids
 
 
+def _texts_for_chunk_ids(chunk_ids: list[str], chunk_store: dict[str, list[str]]) -> list[str]:
+    texts: list[str] = []
+    for chunk_id in chunk_ids:
+        value = chunk_store.get(chunk_id, [])
+        texts.extend(value if isinstance(value, list) else [str(value)])
+    return texts
+
+
+def _all_store_texts(chunk_store: dict[str, list[str]]) -> list[str]:
+    texts: list[str] = []
+    for value in chunk_store.values():
+        texts.extend(value if isinstance(value, list) else [str(value)])
+    return texts
+
+
+def _answer_sentences(answer: str) -> list[str]:
+    cleaned = re.sub(r"\[[^\[\]]+\]", "", answer or "")
+    return [s.strip() for s in re.split(r"(?<=[.!?])\s+(?=[A-Z0-9])", cleaned) if len(s.split()) >= 6]
+
+
 def compute_question_metrics(question: dict, result: dict, chunk_store: dict[str, list[str]], *, nli: NLIFaith | None = None) -> dict:
     """Compute deterministic retrieval and faithfulness metrics for one question."""
     gold_evidence = question.get("gold_evidence") or []
     candidate_ids = result.get("candidate_ids") or []
     final_evidence = result.get("final_evidence") or []
     final_ids = [item.get("chunk_id") for item in final_evidence if item.get("chunk_id")]
+    candidate_texts = _texts_for_chunk_ids(candidate_ids, chunk_store)
+    if candidate_ids and not candidate_texts:
+        candidate_texts = _all_store_texts(chunk_store)
 
     candidate_recall = 0.0
     if gold_evidence:
@@ -46,10 +69,7 @@ def compute_question_metrics(question: dict, result: dict, chunk_store: dict[str
         for ev in gold_evidence:
             snippet = ev.get("snippet", "")
             doc_id = ev.get("doc_id")
-            matches = chunk_store.get(doc_id, [])
-            if any(_snippet_in_text(snippet, text) for text in matches):
-                found += 1
-            elif any(_snippet_in_text(snippet, text) for chunk_id in candidate_ids for text in chunk_store.get(chunk_id, []) if chunk_id in chunk_store):
+            if any(_snippet_in_text(snippet, text) for text in candidate_texts):
                 found += 1
         candidate_recall = found / len(gold_evidence)
 
@@ -59,13 +79,10 @@ def compute_question_metrics(question: dict, result: dict, chunk_store: dict[str
         for ev in gold_evidence:
             snippet = ev.get("snippet", "")
             doc_id = ev.get("doc_id")
-            if doc_id in chunk_store and any(_snippet_in_text(snippet, text) for text in chunk_store[doc_id]):
-                found += 1
-            else:
-                for item in final_evidence:
-                    if item.get("chunk_id") and _snippet_in_text(snippet, (item.get("text") or "") + " " + (item.get("header") or "")):
-                        found += 1
-                        break
+            for item in final_evidence:
+                if item.get("chunk_id") and _snippet_in_text(snippet, (item.get("text") or "") + " " + (item.get("header") or "")):
+                    found += 1
+                    break
         context_recall = found / len(gold_evidence)
 
     context_precision = 0.0
@@ -73,8 +90,9 @@ def compute_question_metrics(question: dict, result: dict, chunk_store: dict[str
         gold_doc_ids = {ev.get("doc_id") for ev in gold_evidence if ev.get("doc_id")}
         precision_hits = 0
         for item in final_evidence:
-            chunk_id = item.get("chunk_id")
-            if chunk_id and any(doc_id == chunk_id for doc_id in gold_doc_ids):
+            chunk_id = item.get("chunk_id") or ""
+            doc_id = chunk_id.rsplit("#", 1)[0] if "#" in chunk_id else item.get("doc_id", "")
+            if doc_id in gold_doc_ids:
                 precision_hits += 1
             elif item.get("source_type") in question.get("gold_source_types", []):
                 precision_hits += 1
@@ -83,13 +101,10 @@ def compute_question_metrics(question: dict, result: dict, chunk_store: dict[str
     faithfulness = 0.0
     if final_evidence:
         model = nli or NLIFaith()
+        evidence_texts = [((item.get("header") or "") + " " + (item.get("text") or "")).strip() for item in final_evidence]
         scored = []
-        for item in final_evidence:
-            text = (item.get("header") or "") + " " + (item.get("text") or "")
-            if not text.strip():
-                continue
-            val = model.entail_prob(text, (question.get("question") or "").strip())
-            scored.append(val)
+        for sentence in _answer_sentences(result.get("answer") or ""):
+            scored.append(max((model.entail_prob(text, sentence) for text in evidence_texts if text), default=0.0))
         faithfulness = sum(scored) / len(scored) if scored else 0.0
 
     return {

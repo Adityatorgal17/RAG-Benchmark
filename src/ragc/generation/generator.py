@@ -14,7 +14,7 @@ from ragc.generation.prompts import P_GEN, P_GEN_NOEVID
 from ragc.schemas import EvidenceItem
 
 
-def _extract_cites(answer: str) -> list[str]:
+def extract_citations(answer: str) -> list[str]:
     return list(dict.fromkeys(re.findall(r"\[([^\[\]]+#\d{3})\]", answer)))
 
 
@@ -32,17 +32,12 @@ def generate(llm, question: str, items: list[EvidenceItem], *, extra: str = "", 
         system = "You are a cybersecurity analyst assistant. Answer the question using ONLY the evidence items provided."
 
     result = llm.generate(prompt, json_mode=False, system=system)
+    sink = getattr(llm, "_ragc_result_sink", None)
+    if callable(sink):
+        sink(result)
     answer = (result.text or "").strip()
     if not answer:
         return "INSUFFICIENT_EVIDENCE", kept
-
-    if not _extract_cites(answer):
-        if any("10.2.9-h1" in (item.text or "") for item in kept):
-            answer = "Affected PAN-OS versions include 10.2.9-h1 and later. [vendor_panos#000]"
-        elif kept:
-            answer = f"Based on the evidence, the answer is supported. [{kept[0].chunk_id}]"
-        else:
-            answer = "INSUFFICIENT_EVIDENCE"
 
     if answer.strip().upper().startswith("INSUFFICIENT_EVIDENCE"):
         return answer, kept

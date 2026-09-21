@@ -8,6 +8,8 @@ important for matching precise security terminology that dense embeddings may mi
 from __future__ import annotations
 
 import re
+import pickle
+from pathlib import Path
 from typing import Any
 
 from rank_bm25 import BM25Okapi
@@ -59,3 +61,16 @@ class BM25Index:
         for rank, (idx, score, chunk) in enumerate(ranked[:k], start=1):
             hits.append(Hit(chunk_id=chunk["chunk_id"], score=score, rank=rank, via="bm25"))
         return hits
+
+    def save(self, path: str | Path) -> Path:
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("wb") as fh:
+            pickle.dump(self, fh)
+        return path
+
+    @classmethod
+    def load(cls, path: str | Path) -> "BM25Index":
+        path = Path(path)
+        with path.open("rb") as fh:
+            return pickle.load(fh)

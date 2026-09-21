@@ -1,9 +1,4 @@
-"""Local cache for LLM responses.
-
-This module stores generated model outputs keyed by prompt and call settings to reduce
-redundant calls and keep experimentation reproducible. It is a small but important part
-of the project’s efficient and budget-aware pipeline.
-"""
+"""SQLite cache for LLM responses."""
 
 from __future__ import annotations
 
@@ -35,14 +30,27 @@ class LLMCache:
     def _hash(payload: dict) -> str:
         return hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
 
-    def get(self, prompt: str, *, json_mode: bool = False, system: str | None = None) -> dict | None:
-        key = self._hash({"prompt": prompt, "json_mode": json_mode, "system": system})
+    def key_for(self, prompt: str, *, json_mode: bool = False, system: str | None = None, provider: str = "", model: str = "", temperature: float | int | None = None, max_tokens: int | None = None) -> str:
+        return self._hash(
+            {
+                "prompt": prompt,
+                "json_mode": json_mode,
+                "system": system,
+                "provider": provider,
+                "model": model,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            }
+        )
+
+    def get(self, prompt: str, *, json_mode: bool = False, system: str | None = None, provider: str = "", model: str = "", temperature: float | int | None = None, max_tokens: int | None = None) -> dict | None:
+        key = self.key_for(prompt, json_mode=json_mode, system=system, provider=provider, model=model, temperature=temperature, max_tokens=max_tokens)
         with self.session_factory() as session:
             row = session.get(CacheEntry, key)
             return json.loads(row.value) if row is not None else None
 
-    def set(self, prompt: str, value: dict, *, json_mode: bool = False, system: str | None = None):
-        key = self._hash({"prompt": prompt, "json_mode": json_mode, "system": system})
+    def set(self, prompt: str, value: dict, *, json_mode: bool = False, system: str | None = None, provider: str = "", model: str = "", temperature: float | int | None = None, max_tokens: int | None = None):
+        key = self.key_for(prompt, json_mode=json_mode, system=system, provider=provider, model=model, temperature=temperature, max_tokens=max_tokens)
         with self.session_factory() as session:
             session.merge(CacheEntry(key=key, value=json.dumps(value, sort_keys=True)))
             session.commit()

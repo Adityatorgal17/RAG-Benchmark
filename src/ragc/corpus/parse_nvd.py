@@ -20,7 +20,11 @@ def _flatten_cwe(weaknesses):
 
 
 def parse_nvd_record(payload: dict[str, Any], *, doc_id: str, url: str) -> dict[str, Any]:
-    cve = payload.get("cve", {})
+    if "vulnerabilities" in payload:
+        vulnerabilities = payload.get("vulnerabilities") or []
+        cve = (vulnerabilities[0] or {}).get("cve", {}) if vulnerabilities else {}
+    else:
+        cve = payload.get("cve", {})
     desc = cve.get("descriptions") or []
     english = next((item.get("value") for item in desc if item.get("lang") == "en"), "")
 

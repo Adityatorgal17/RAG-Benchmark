@@ -18,7 +18,7 @@ def _strip_citations(text: str) -> str:
 def parse_attack_bundle(bundle: dict[str, Any], *, wanted: list[str]) -> list[dict[str, Any]]:
     objects = bundle.get("objects", [])
     by_id = {obj.get("id"): obj for obj in objects if obj.get("id")}
-    relationships = bundle.get("relationships", [])
+    relationships = (bundle.get("relationships") or []) + [obj for obj in objects if obj.get("type") == "relationship"]
     mitigations: dict[str, list[str]] = {}
     for rel in relationships:
         if rel.get("relationship_type") != "mitigates":

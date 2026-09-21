@@ -53,6 +53,32 @@ class System(ABC):
         self.reranker = reranker
         self.budget = CallBudget(max_calls=max_calls, reserve_final=reserve_final)
         self.trace: list[dict] = []
+        self._started_at = perf_counter()
+        self._llm_results: list[object] = []
+        if self.llm is not None:
+            try:
+                setattr(self.llm, "_ragc_result_sink", self._record_llm_result)
+            except Exception:
+                pass
+
+    def _record_llm_result(self, result) -> None:
+        self._llm_results.append(result)
+
+    def usage(self) -> dict:
+        prompt_tokens = sum(int(getattr(item, "prompt_tokens", 0) or 0) for item in self._llm_results)
+        completion_tokens = sum(int(getattr(item, "completion_tokens", 0) or 0) for item in self._llm_results)
+        active_latency_s = sum(float(getattr(item, "latency_s", 0.0) or 0.0) for item in self._llm_results)
+        wall_s = max(0.0, perf_counter() - self._started_at)
+        local_s = max(0.0, wall_s - active_latency_s)
+        return {
+            "llm_calls": self.budget.used,
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "active_latency_s": round(active_latency_s, 4),
+            "latency_s": round(active_latency_s, 4),
+            "local_s": round(local_s, 4),
+            "wall_s": round(wall_s, 4),
+        }
 
     def call_json(self, tag: str, system: str, user: str, required: list[str], budget: CallBudget | None = None) -> dict:
         """Execute a JSON-producing LLM call while enforcing the call budget.
@@ -71,6 +97,7 @@ class System(ABC):
             raise RuntimeError("No LLM client configured for this system")
 
         payload = self.llm.generate(user, json_mode=True, system=system)
+        self._record_llm_result(payload)
         elapsed = perf_counter() - start
         result = getattr(payload, "text", payload)
         self.trace.append({"tag": tag, "system": system, "user": user, "latency_s": elapsed, "required": required, "result": result})

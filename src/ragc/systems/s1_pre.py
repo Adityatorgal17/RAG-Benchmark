@@ -7,7 +7,7 @@ fusion of the ranked lists, and one final generation pass.
 
 from __future__ import annotations
 
-from ragc.generation.generator import generate
+from ragc.generation.generator import extract_citations, generate
 from ragc.retrieval.hybrid import rrf
 from ragc.schemas import EvidenceItem, SystemResult
 from ragc.systems.base import System
@@ -91,9 +91,9 @@ class S1PreSystem(System):
             question=question,
             answer=answer,
             abstained=abstained,
-            cited_ids=[item.chunk_id for item in shown],
+            cited_ids=extract_citations(answer),
             candidate_ids=list(dict.fromkeys(candidate_ids)),
             final_evidence=shown,
-            usage={"llm_calls": self.budget.used, "prompt_tokens": 0, "completion_tokens": 0, "local_s": 0.0, "wall_s": 0.0},
+            usage=self.usage(),
             trace=self.trace,
         )

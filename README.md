@@ -22,29 +22,29 @@ The pilot runs the two simplest systems on three dev questions to estimate the r
 The current pilot artifact is saved in [results/pilot.md](results/pilot.md).
 
 | System | Mean calls | Mean tokens | Mean seconds | Questions |
-|---|---:|---:|---:|---:|
-| S-1 | 2 | 651 | 0.01 | 3 |
-| S0 | 2 | 651 | 0.01 | 3 |
+| ------ | ---------: | ----------: | -----------: | --------: |
+| S-1    |          2 |         651 |         0.01 |         3 |
+| S0     |          2 |         651 |         0.01 |         3 |
 
 These estimates are intentionally early and are meant to calibrate the Section 11.8 budget table before larger batches are run.
 
 ## Section 11.8 budget and run rules
 
-| System | Max calls / question | Expected average | Calls for 30 test questions |
-|---|---:|---:|---:|
-| S-1 | 1 | 1 | 30 |
-| S0 | 1 | 1 | 30 |
-| S1 | 2 | 2 | 60 |
-| S2 | 1 | 1 | 30 |
-| S3 | 2 | 2 | 60 |
-| S4 | 5 | 4.5 | 135 |
-| S5 | 6 | 4 | 120 |
-| S6a | 7 | 5.5 | 165 |
-| S6b | 7 | 6 | 180 |
-| S6c | 7 | 6 | 180 |
-| A2a + A2b (ablation) | 1 each | 1 | 60 |
-| A1 (ablation) | 7 | 6 | 180 |
-| Total main + ablations |  |  | about 1,230 |
+| System                 | Max calls / question | Expected average | Calls for 30 test questions |
+| ---------------------- | -------------------: | ---------------: | --------------------------: |
+| S-1                    |                    1 |                1 |                          30 |
+| S0                     |                    1 |                1 |                          30 |
+| S1                     |                    2 |                2 |                          60 |
+| S2                     |                    1 |                1 |                          30 |
+| S3                     |                    2 |                2 |                          60 |
+| S4                     |                    5 |              4.5 |                         135 |
+| S5                     |                    6 |                4 |                         120 |
+| S6a                    |                    7 |              5.5 |                         165 |
+| S6b                    |                    7 |                6 |                         180 |
+| S6c                    |                    7 |                6 |                         180 |
+| A2a + A2b (ablation)   |               1 each |                1 |                          60 |
+| A1 (ablation)          |                    7 |                6 |                         180 |
+| Total main + ablations |                      |                  |                 about 1,230 |
 
 ### Pilot-based calibration note
 

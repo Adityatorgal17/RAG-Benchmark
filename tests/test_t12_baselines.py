@@ -53,3 +53,5 @@ def test_s0_naive_rag_returns_five_ranked_evidence_items():
     assert [item.chunk_id for item in result.final_evidence] == ["c0", "c1", "c2", "c3", "c4"]
     assert system.budget.used == 1
     assert len(llm.calls) == 1
+    assert result.usage["prompt_tokens"] > 0
+    assert result.usage["completion_tokens"] > 0

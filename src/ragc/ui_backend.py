@@ -8,64 +8,54 @@ JSON-serializable payload that can be displayed in a lightweight dashboard.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Any
 
 from ragc.config import load_config
-from ragc.llm.fake import FakeLLM
+from ragc.llm.clients import build_main_llm
+from ragc.retrieval.reranker import Reranker
 from ragc.retrieval.retriever import Retriever
 from ragc.systems.registry import get_system_factory
 
 
-def _demo_chunks() -> list[dict[str, Any]]:
-    return [
-        {
-            "chunk_id": "demo-001",
-            "doc_id": "doc-1",
-            "source_type": "attack",
-            "title": "CVE advisory",
-            "section": "Overview",
-            "url": "https://example.org/demo-1",
-            "date": "2024-01-01",
-            "cve_ids": ["CVE-2024-0001"],
-            "header": "Remote code execution in edge appliance",
-            "text": "Attackers can exploit an unauthenticated remote code execution flaw in the edge appliance when inbound traffic reaches the vulnerable service.",
-            "n_words": 32,
-        },
-        {
-            "chunk_id": "demo-002",
-            "doc_id": "doc-2",
-            "source_type": "mitigation",
-            "title": "Mitigation guidance",
-            "section": "Remediation",
-            "url": "https://example.org/demo-2",
-            "date": "2024-01-02",
-            "cve_ids": [],
-            "header": "Apply vendor patch and restrict exposure",
-            "text": "The recommended mitigation is to apply the vendor patch immediately and restrict the service to trusted networks or internal management interfaces.",
-            "n_words": 30,
-        },
-        {
-            "chunk_id": "demo-003",
-            "doc_id": "doc-3",
-            "source_type": "news",
-            "title": "Threat context",
-            "section": "Background",
-            "url": "https://example.org/demo-3",
-            "date": "2024-01-03",
-            "cve_ids": ["CVE-2024-0002"],
-            "header": "Exploit trend in public-facing services",
-            "text": "Public-facing telephony and edge services have become a common target for exploitation chains that combine reconnaissance with weak credential hygiene.",
-            "n_words": 27,
-        },
-    ]
+_RERANKER_SYSTEMS = {"S2", "S3", "S6c", "A1", "A2a", "A2b"}
+_UI_LLM = None
+_UI_RETRIEVER: Retriever | None = None
+_UI_RERANKER: Reranker | None = None
 
 
 def _get_retriever(cfg):
-    chunks_path = Path(getattr(getattr(cfg, "paths", None), "chunks", "data/processed/chunks.jsonl"))
-    if chunks_path.exists():
-        return Retriever(cfg, chunks_path=str(chunks_path))
-    return Retriever(cfg, chunks=_demo_chunks())
+    global _UI_RETRIEVER
+    if _UI_RETRIEVER is None:
+        _UI_RETRIEVER = Retriever(cfg)
+    return _UI_RETRIEVER
+
+
+def _get_llm(cfg):
+    global _UI_LLM
+    if _UI_LLM is None:
+        try:
+            from dotenv import load_dotenv
+
+            load_dotenv()
+        except ImportError:
+            pass
+        _UI_LLM = build_main_llm(cfg, fake=False)
+    return _UI_LLM
+
+
+def _get_reranker(cfg, system_id: str):
+    """Load the configured transformer reranker for UI runs that require it."""
+    global _UI_RERANKER
+    if system_id not in _RERANKER_SYSTEMS:
+        return None
+    if _UI_RERANKER is None:
+        rerank_cfg = getattr(cfg, "reranker", None)
+        _UI_RERANKER = Reranker(
+            getattr(rerank_cfg, "model", "BAAI/bge-reranker-base"),
+            batch_size=int(getattr(rerank_cfg, "batch_size", 16)),
+            max_length=int(getattr(rerank_cfg, "max_length", 384)),
+        )
+    return _UI_RERANKER
 
 
 def _summarize_trace(trace: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -119,7 +109,7 @@ def build_ui_response(system_id: str, question: str) -> dict[str, Any]:
     """Run the selected system and return a UI-friendly payload."""
     cfg = load_config()
     factory = get_system_factory(system_id)
-    system = factory(cfg=cfg, llm=FakeLLM(), retriever=_get_retriever(cfg), reranker=None)
+    system = factory(cfg=cfg, llm=_get_llm(cfg), retriever=_get_retriever(cfg), reranker=_get_reranker(cfg, system_id))
     result = system.run("ui-demo", question)
 
     side_summary = _parse_trace_payloads(result.trace)

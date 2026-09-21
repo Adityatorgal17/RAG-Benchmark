@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<!--[if lt IE 7 ]> <html lang="en-US" class="ie ie6 lte9 lte8 lte7 lte6 no-js"> <![endif]-->
+<!--[if IE 7 ]>    <html lang="en-US" class="ie ie7 lte9 lte8 lte7 no-js"> <![endif]-->
+<!--[if IE 8 ]>    <html lang="en-US" class="ie ie8 lte9 lte8 no-js"> <![endif]-->
+<!--[if IE 9 ]>    <html lang="en-US" class="ie ie9 lte9 no-js"> <![endif]-->
+<!--[if (gt IE 9)|!(IE)]><!-->
+<html lang="en-US" class="no-js">
+<!--<![endif]-->
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta http-equiv="cleartype" content="on">
+	<meta name="theme-color" content="#0075BC">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+	<script>
+		// Define dataLayer and the gtag function.
+		window.dataLayer = window.dataLayer || [];
+		function gtag(){dataLayer.push(arguments);}
+
+		// Set default consent to 'denied' as a placeholder
+		// Determine actual values based on your own requirements
+		gtag('consent', 'default', {
+			'ad_storage': 'denied',
+			'ad_user_data': 'denied',
+			'ad_personalization': 'denied',
+			'analytics_storage': 'denied',
+			'functionality_storage': 'denied',
+			'personalization_storage': 'denied',
+			'security_storage': 'denied',
+		});
+	</script>
+	<!-- Google tag (gtag.js) -->
+    	<script async src="https://www.googletagmanager.com/gtag/js?id=G-WRSX85NK29"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag(){dataLayer.push(arguments);}
+
+		gtag('js', new Date());
+		gtag('config', 'G-WRSX85NK29');
+	</script>
+	<meta name='robots' content='index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' />
+
+	<!-- This site is optimized with the Yoast SEO Premium plugin v26.6 (Yoast SEO v28.3) - https://yoast.com/product/yoast-seo-premium-wordpress/ -->
+	<title>Active Exploitation of Two Zero-Day Vulnerabilities in Ivanti Connect Secure VPN | Volexity</title>
+	<meta name="description" content="Volexity has uncovered active in-the-wild exploitation of two vulnerabilities allowing unauthenticated remote code execution in Ivanti Connect Secure VPN appliances. An official security advisory and knowledge base article have been released by Ivanti that includes mitigation that should be applied immediately. However, a mitigation does not remedy a past or ongoing compromise. Systems should simultaneously be thoroughly analyzed per details in this post to look for signs of a breach." />
+	<link rel="canonical" href="https://www.volexity.com/blog/2024/01/10/active-exploitation-of-two-zero-day-vulnerabilities-in-ivanti-connect-secure-vpn/" />
+	<meta property="og:locale" content="en_US" />
+	<meta property="og:type" content="article" />
+	<meta property="og:title" content="Active Exploitation of Two Zero-Day Vulnerabilities in Ivanti Connect Secure VPN" />
+	<meta property="og:description" content="Volexity has uncovered active in-the-wild exploitation of two vulnerabilities allowing unauthenticated remote code execution in Ivanti Connect Secure VPN appliances. An official security advisory and knowledge base article have been released by Ivanti that includes mitigation that should be applied immediately. However, a mitigation does not remedy a past or ongoing compromise. Systems should simultaneously be thoroughly analyzed per details in this post to look for signs of a breach." />
+	<meta property="og:url" content="https://www.volexity.com/blog/2024/01/10/active-exploitation-of-two-zero-day-vulnerabilities-in-ivanti-connect-secure-vpn/" />
+	<meta property="og:site_name" content="Volexity" />
+	<meta property="article:publisher" content="https://www.facebook.com/volexity/" />
+	<meta property="article:published_time" content="2024-01-10T14:00:06+00:00" />
+	<meta property="article:modified_time" content="2026-03-25T13:38:36+00:00" />
+	<meta property="og:image" content="https://www.volexity.com/wp-content/uploads/2025/06/Volexity-Logo-Stacked.png" />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="765" />
+	<meta property="og:image:type" content="image/png" />
+	<meta name="author" content="mindgrub" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:creator" content="@volexity" />
+	<meta name="twitter:site" content="@volexity" />
+	<script type="application/ld+json" class="yoast-schema-graph">{"@context":"https:\/\/schema.org","@graph":[{"@type":"Article","@id":"https:\/\/www.volexity.com\/blog\/2024\/01\/10\/active-exploitation-of-two-zero-day-vulnerabilities-in-ivanti-connect-secure-vpn\/#article","isPartOf":{"@id":"https:\/\/www.volexity.com\/blog\/2024\/01\/10\/active-exploitation-of-two-zero-day-vulnerabilities-in-ivanti-connect-secure-vpn\/"},"author":{"name":"mindgrub","@id":"https:\/\/www.volexity.com\/#\/schema\/person\/ef102495bc7ecc8cddb3946d0eff9f9a"},"headline":"Active Exploitation of Two Zero-Day Vulnerabilities in Ivanti Connect Secure VPN","datePublished":"2024-01-10T14:00:06+00:00","dateModified":"2026-03-25T13:38:36+00:00","mainEntityOfPage":{"@id":"https:\/\/www.volexity.com\/blog\/2024\/01\/10\/active-exploitation-of-two-zero-day-vulnerabilities-in-ivanti-connect-secure-vpn\/"},"wordCount":3688,"publisher":{"@id":"https:\/\/www.volexity.com\/#organization"},"image":{"@id":"https:\/\/www.volexity.com\/blog\/2024\/01\/10\/active-exploitation-of-two-zero-day-vulnerabilities-in-ivanti-connect-secure-vpn\/#primaryimage"},"thumbnailUrl":"https:\/\/www.volexity.com\/wp-content\/uploads\/2025\/02\/Volexity-Active-Exploitation-of-Two-Zero-Day-Vulnerabilities-in-Ivanti-Connect-Secure-VPN-Jan10.png","keywords":["APT","China","edge device","Exploit","ivanti connect secure","pulsesecure","RCE","VPN","webshell"],"articleSection":["Threat Intelligence"],"inLanguage":"en-US"},{"@type":"WebPage","@id":"https:\/\/www.volexity.com\/blog\/2024\/01\/10\/active-exploitation-of-two-zero-day-vulnerabilities-in-ivanti-connect-secure-vpn\/","url":"https:\/\/www.volexity.com\/blog\/2024\/01\/10\/active-exploitation-of-two-zero-day-vulnerabilities-in-ivanti-connect-secure-vpn\/","name":"Active Exploitation of Two Zero-Day Vulnerabilities in Ivanti Connect Secure VPN | Volexity","isPartOf":{"@id":"https:\/\/www.volexity.com\/#website"},"primaryImageOfPage":{"@id":"https:\/\/www.volexity.com\/blog\/2024\/01\/10\/active-exploitation-of-two-zero-day-vulnerabilities-in-ivanti-connect-secure-vpn\/#primaryimage"},"image":{"@id":"https:\/\/www.volexity.com\/blog\/2024\/01\/10\/active-exploitation-of-two-zero-day-vulnerabilities-in-ivanti-connect-secure-vpn\/#primaryimage"},"thumbnailUrl":"https:\/\/www.volexity.com\/wp-content\/uploads\/2025\/02\/Volexity-Active-Exploitation-of-Two-Zero-Day-Vulnerabilities-in-Ivanti-Connect-Secure-VPN-Jan10.png","datePublished":"2024-01-10T14:00:06+00:00","dateModified":"2026-03-25T13:38:36+00:00","description":"Volexity has uncovered active in-the-wild exploitation of two vulnerabilities allowing unauthenticated remote code execution in Ivanti Connect Secure VPN appliances. An official security advisory and knowledge base article have been released by Ivanti that includes mitigation that should be applied immediately. However, a mitigation does not remedy a past or ongoing compromise. Systems should simultaneously be thoroughly analyzed per details in this post to look for signs of a breach.","breadcrumb":{"@id":"https:\/\/www.volexity.com\/blog\/2024\/01\/10\/active-exploitation-of-two-zero-day-vulnerabilities-in-ivanti-connect-secure-vpn\/#breadcrumb"},"inLanguage":"en-US","potentialAction":[{"@type":"ReadAction","target":["https:\/\/www.volexity.com\/blog\/2024\/01\/10\/active-exploitation-of-two-zero-day-vulnerabilities-in-ivanti-connect-secure-vpn\/"]}]},{"@type":"ImageObject","inLanguage":"en-US","@id":"https:\/\/www.volexity.com\/blog\/2024\/01\/10\/active-exploitation-of-two-zero-day-vulnerabilities-in-ivanti-connect-secure-vpn\/#primaryimage","url":"https:\/\/www.volexity.com\/wp-content\/uploads\/2025\/02\/Volexity-Active-Exploitation-of-Two-Zero-Day-Vulnerabilities-in-Ivanti-Connect-Secure-VPN-Jan10.png","contentUrl":"https:\/\/www.volexity.com\/wp-content\/uploads\/2025\/02\/Volexity-Active-Exploitation-of-Two-Zero-Day-Vulnerabilities-in-Ivanti-Connect-Secure-VPN-Jan10.png","width":2060,"height":1076},{"@type":"BreadcrumbList","@id":"https:\/\/www.volexity.com\/blog\/2024\/01\/10\/active-exploitation-of-two-zero-day-vulnerabilities-in-ivanti-connect-secure-vpn\/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https:\/\/www.volexity.com\/"},{"@type":"ListItem","position":2,"name":"Active Exploitation of Two Zero-Day Vulnerabilities in Ivanti Connect Secure VPN"}]},{"@type":"WebSite","@id":"https:\/\/www.volexity.com\/#website","url":"https:\/\/www.volexity.com\/","name":"Volexity | Memory Forensics, Cybersecurity Threat Intelligence & Incident Response","description":"No &#039;Ware To Hide","publisher":{"@id":"https:\/\/www.volexity.com\/#organization"},"alternateName":"Volexity Memory Forensics","potentialAction":[{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https:\/\/www.volexity.com\/?s={search_term_string}"},"query-input":{"@type":"PropertyValueSpecification","valueRequired":true,"valueName":"search_term_string"}}],"inLanguage":"en-US"},{"@type":"Organization","@id":"https:\/\/www.volexity.com\/#organization","name":"Volexity","alternateName":"Volexity - Memory Forensics","url":"https:\/\/www.volexity.com\/","logo":{"@type":"ImageObject","inLanguage":"en-US","@id":"https:\/\/www.volexity.com\/#\/schema\/logo\/image\/","url":"https:\/\/www.volexity.com\/wp-content\/uploads\/2025\/06\/Volexity-Logo-Stacked.png","contentUrl":"https:\/\/www.volexity.com\/wp-content\/uploads\/2025\/06\/Volexity-Logo-Stacked.png","width":1200,"height":765,"caption":"Volexity"},"image":{"@id":"https:\/\/www.volexity.com\/#\/schema\/logo\/image\/"},"sameAs":["https:\/\/www.facebook.com\/volexity\/","https:\/\/x.com\/volexity","https:\/\/www.linkedin.com\/company\/volexity\/","https:\/\/github.com\/volexity","https:\/\/infosec.exchange\/@volexity","https:\/\/bsky.app\/profile\/volexity.com"]},{"@type":"Person","@id":"https:\/\/www.volexity.com\/#\/schema\/person\/ef102495bc7ecc8cddb3946d0eff9f9a","name":"mindgrub","image":{"@type":"ImageObject","inLanguage":"en-US","@id":"https:\/\/secure.gravatar.com\/avatar\/055b18071c8c04e07ce4e8a4e77e6618729aaaba55f421e1ddea3d7d6d78720e?s=96&d=mm&r=g","url":"https:\/\/secure.gravatar.com\/avatar\/055b18071c8c04e07ce4e8a4e77e6618729aaaba55f421e1ddea3d7d6d78720e?s=96&d=mm&r=g","contentUrl":"https:\/\/secure.gravatar.com\/avatar\/055b18071c8c04e07ce4e8a4e77e6618729aaaba55f421e1ddea3d7d6d78720e?s=96&d=mm&r=g","caption":"mindgrub"},"sameAs":["https:\/\/www.volexity.com"],"url":"https:\/\/www.volexity.com\/blog\/author\/mindgrub\/"}]}</script>
+	<!-- / Yoast SEO Premium plugin. -->
+
+
+<link rel='dns-prefetch' href='//static.addtoany.com' />
+<link rel='dns-prefetch' href='//ajax.googleapis.com' />
+<link rel='dns-prefetch' href='//fonts.googleapis.com' />
+<link href='https://fonts.gstatic.com' crossorigin='' rel='preconnect' />
+<link rel='preconnect' href='https://fonts.googleapis.com' />
+<link rel="alternate" title="oEmbed (JSON)" type="application/json+oembed" href="https://www.volexity.com/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fwww.volexity.com%2Fblog%2F2024%2F01%2F10%2Factive-exploitation-of-two-zero-day-vulnerabilities-in-ivanti-connect-secure-vpn%2F" />
+<link rel="alternate" title="oEmbed (XML)" type="text/xml+oembed" href="https://www.volexity.com/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fwww.volexity.com%2Fblog%2F2024%2F01%2F10%2Factive-exploitation-of-two-zero-day-vulnerabilities-in-ivanti-connect-secure-vpn%2F&#038;format=xml" />
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<style id="classic-theme-styles-inline-css">
+/*! This file is auto-generated */
+.wp-block-button__link{color:#fff;background-color:#32373c;border-radius:9999px;box-shadow:none;text-decoration:none;padding:calc(.667em + 2px) calc(1.333em + 2px);font-size:1.125em}.wp-block-file__button{background:#32373c;color:#fff;text-decoration:none}
+/*# sourceURL=/wp-includes/css/classic-themes.min.css */
+</style>
+
+<style id="global-styles-inline-css">
+:root{--wp--preset--aspect-ratio--square: 1;--wp--preset--aspect-ratio--4-3: 4/3;--wp--preset--aspect-ratio--3-4: 3/4;--wp--preset--aspect-ratio--3-2: 3/2;--wp--preset--aspect-ratio--2-3: 2/3;--wp--preset--aspect-ratio--16-9: 16/9;--wp--preset--aspect-ratio--9-16: 9/16;--wp--preset--color--black: #000000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #ffffff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgb(6,147,227) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgb(252,185,0) 0%,rgb(255,105,0) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgb(255,105,0) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--font-size--small: 13px;--wp--preset--font-size--medium: 20px;--wp--preset--font-size--large: 36px;--wp--preset--font-size--x-large: 42px;--wp--preset--spacing--20: 0.44rem;--wp--preset--spacing--30: 0.67rem;--wp--preset--spacing--40: 1rem;--wp--preset--spacing--50: 1.5rem;--wp--preset--spacing--60: 2.25rem;--wp--preset--spacing--70: 3.38rem;--wp--preset--spacing--80: 5.06rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);--wp--preset--shadow--outlined: 6px 6px 0px -3px rgb(255, 255, 255), 6px 6px rgb(0, 0, 0);--wp--preset--shadow--crisp: 6px 6px 0px rgb(0, 0, 0);}.wp-block-button{--wp--preset--dimension--25: 25%;--wp--preset--dimension--50: 50%;--wp--preset--dimension--75: 75%;--wp--preset--dimension--100: 100%;}:where(body) { margin: 0; }:where(.is-layout-flex){gap: 0.5em;}:where(.is-layout-grid){gap: 0.5em;}body .is-layout-flex{display: flex;}.is-layout-flex{flex-wrap: wrap;align-items: center;}.is-layout-flex > :is(*, div){margin: 0;}body .is-layout-grid{display: grid;}.is-layout-grid > :is(*, div){margin: 0;}body{padding-top: 0px;padding-right: 0px;padding-bottom: 0px;padding-left: 0px;}:root :where(.wp-element-button, .wp-block-button__link){background-color: #32373c;border-width: 0;color: #fff;font-family: inherit;font-size: inherit;font-style: inherit;font-weight: inherit;letter-spacing: inherit;line-height: inherit;padding-top: calc(0.667em + 2px);padding-right: calc(1.333em + 2px);padding-bottom: calc(0.667em + 2px);padding-left: calc(1.333em + 2px);text-decoration: none;text-transform: inherit;}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}
+/*# sourceURL=global-styles-inline-css */
+</style>
+
+<link rel='stylesheet' id='theme-styles-css' href='https://www.volexity.com/wp-content/themes/volexity/dist/styles/theme-styles.min.css?ver=1787540493' media='screen, print' />
+<link rel='stylesheet' id='theme-icons-css' href='https://www.volexity.com/wp-content/themes/volexity/dist/icons.css?ver=1787540493' media='screen' />
+<link rel='stylesheet' id='theme-fonts-css' href='https://fonts.googleapis.com/css2?family=Gloock&#038;family=Work+Sans:ital,wght@0,100..900;1,100..900&#038;Archivo+Narrow:ital,wght@0,400..700;1,400..700&#038;display=swap' media='all' />
+<link rel='stylesheet' id='addtoany-css' href='https://www.volexity.com/wp-content/plugins/add-to-any/addtoany.min.css?ver=1.16' media='all' />
+<script id="addtoany-core-js-before">
+window.a2a_config=window.a2a_config||{};a2a_config.callbacks=[];a2a_config.overlays=[];a2a_config.templates={};
+
+//# sourceURL=addtoany-core-js-before
+</script>
+<script id="addtoany-core-js" defer src="https://static.addtoany.com/menu/page.js"></script>
+<script id="jquery-js" src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js?ver=1.0.0"></script>
+<script id="addtoany-jquery-js" defer src="https://www.volexity.com/wp-content/plugins/add-to-any/addtoany.min.js?ver=1.1"></script>
+<link rel="https://api.w.org/" href="https://www.volexity.com/wp-json/" /><link rel="alternate" title="JSON" type="application/json" href="https://www.volexity.com/wp-json/wp/v2/posts/1200" /><link rel='shortlink' href='https://www.volexity.com/?p=1200' />
+<meta name="tec-api-version" content="v1"><meta name="tec-api-origin" content="https://www.volexity.com"><link rel="alternate" href="https://www.volexity.com/wp-json/tribe/events/v1/" /><link rel="icon" href="https://www.volexity.com/wp-content/uploads/2025/06/favicon-512x512-1-150x150.png" sizes="32x32" />
+<link rel="icon" href="https://www.volexity.com/wp-content/uploads/2025/06/favicon-512x512-1-300x300.png" sizes="192x192" />
+<link rel="apple-touch-icon" href="https://www.volexity.com/wp-content/uploads/2025/06/favicon-512x512-1-300x300.png" />
+<meta name="msapplication-TileImage" content="https://www.volexity.com/wp-content/uploads/2025/06/favicon-512x512-1-300x300.png" />
+</head>
+
+<body class="wp-singular post-template-default single single-post postid-1200 single-format-standard wp-theme-volexity tribe-no-js">
+			<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag(){dataLayer.push(arguments);}
+
+			gtag('consent', 'default', {
+				'ad_storage': 'denied',
+				'analytics_storage': 'denied',
+				'functionality_storage': 'denied',
+				'personalization_storage': 'denied',
+				'security_storage': 'denied'
+			});
+		</script>
+	
+	<div class="header-observer"></div>
+<header class="header" id="site-header">
+
+	<a class="sr-only sr-only-focusable skip-to-main" href="#main">
+		Skip to main content	</a>
+
+	<section class="main-header main-header--white">
+		<div class="container container-wide">
+			<div class="main-header__wrapper">
+
+
+				<div class="main-header__logo text-center">
+					<a href="/" class="main-header__home" aria-label="Logo linking to homepage">
+						<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 195 20">
+	<g>
+		<path d="m123.152 0-20.556 19.773h8.457L131.479 0h-8.327Z" fill="#4D9ED7" />
+		<path d="m118.52 14.724 5.154 5.049h8.327l-9.405-8.994-4.068 3.937-.008.008ZM103.509 0l8.605 8.443 3.998-3.85L111.305 0H103.5h.009ZM22.198.254 14.41 14.899 6.726.254H.103l10.508 19.519h7.51L28.638.253h-6.44ZM37.556 19.947c-.444 0-.895 0-1.365-.026-.47-.017-.843-.026-1.138-.044-.904 0-1.704-.148-2.4-.437a5.182 5.182 0 0 1-1.807-1.269c-.426-.437-.74-.883-.922-1.347-.26-.595-.452-1.417-.6-2.476-.138-1.059-.208-2.345-.208-3.858V7.953c0-.858.052-1.628.157-2.319.104-.691.252-1.347.46-1.995.452-1.426 1.443-2.432 2.973-2.992.556-.201 1.556-.358 2.99-.472C37.13.07 39.007.017 41.346.017h4.25c2.972 0 4.963.175 5.97.534 2.043.717 3.217 2.231 3.521 4.55.035.314.06.734.096 1.268.034.534.052 1.059.052 1.575l.052 3.21c0 1.357-.052 2.442-.148 3.273a8.144 8.144 0 0 1-.608 2.3c-.452 1.05-1.139 1.847-2.06 2.398-.921.551-2.069.822-3.442.822L46.03 20l-8.465-.053h-.01Zm7.518-4.986c.939 0 1.643-.036 2.112-.097.782-.105 1.347-.498 1.678-1.155.33-.665.495-2.082.495-4.252 0-1.11-.052-1.907-.156-2.397-.174-.91-.66-1.478-1.452-1.706-.26-.061-.556-.122-.886-.184a6.278 6.278 0 0 0-.983-.078l-3.78-.035h-2.13c-.33 0-.782 0-1.347.017-.565.009-.913.018-1.043.018-.487 0-.895.078-1.226.253-.33.167-.617.42-.843.762-.347.525-.521 2.108-.521 4.741 0 1.855.304 3.019.904 3.5.426.367 1.634.56 3.598.56l5.572.044.008.008ZM64.266.254v14.48h13.002v5.039H58.356V.253h5.91ZM79.415.254h21.33v4.55h-15.42v2.668h14.56v4.225h-14.56v3.526h15.594v4.55H79.415V.253ZM139.136.254h-5.91v19.519h5.91V.253ZM164.569.254v5.039h-8.492v14.48h-5.911V5.293h-8.5V.253h22.903ZM173.773.254l6.38 7.847 6.38-7.847h7.57l-11.03 12.712v6.807h-5.91v-6.807L166.168.254h7.605Z" fill="#64656A" />
+	</g>
+	<defs>
+		
+			<path fill="#fff" d="M0 0h194v20H0z" />
+		
+	</defs>
+</svg>
+					</a>
+				</div>
+
+				<div class="main-header-toggle__wrapper">
+					<button class="main-header-toggle">
+						<span class="sr-only">Open Menu</span>
+						<span class="main-header-toggle__span"></span>
+						<span class="main-header-toggle__span"></span>
+						<span class="main-header-toggle__span"></span>
+						<span class="main-header-toggle__span"></span>
+					</button>
+				</div>
+
+				<div class="main-header__drawer">
+											<section class="main-menu container container-wide">
+							<div class="menu-main-menu-container"><ul id="menu-main-menu" class="menu"><li id="menu-item-2983" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-2983"><a href="https://www.volexity.com/products-overview/"><span>Products</span></a>
+<ul class="sub-menu">
+	<li id="menu-item-515" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-515"><a href="https://www.volexity.com/products-overview/"><span>Products Overview</span></a></li>
+	<li id="menu-item-565" class="menu-item menu-item-type-post_type menu-item-object-product menu-item-565"><a href="https://www.volexity.com/products-overview/volcano/"><span>Volcano</span></a></li>
+	<li id="menu-item-564" class="menu-item menu-item-type-post_type menu-item-object-product menu-item-564"><a href="https://www.volexity.com/products-overview/surge/"><span>Surge</span></a></li>
+</ul>
+</li>
+<li id="menu-item-552" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-552"><a href="https://www.volexity.com/services-overview/"><span>Services</span></a>
+<ul class="sub-menu">
+	<li id="menu-item-2535" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-2535"><a href="https://www.volexity.com/services-overview/"><span>Services Overview</span></a></li>
+	<li id="menu-item-549" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-549"><a href="https://www.volexity.com/services-overview/incident-response/"><span>Incident Response</span></a></li>
+	<li id="menu-item-548" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-548"><a href="https://www.volexity.com/services-overview/network-security-monitoring/"><span>Network Security Monitoring</span></a></li>
+	<li id="menu-item-547" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-547"><a href="https://www.volexity.com/services-overview/proactive-threat-assessments/"><span>Proactive Threat Assessments</span></a></li>
+	<li id="menu-item-546" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-546"><a href="https://www.volexity.com/services-overview/cyber-threat-intelligence/"><span>Cyber Threat Intelligence</span></a></li>
+	<li id="menu-item-2345" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-2345"><a href="https://www.volexity.com/services-overview/mergers-acquisitions-cybersecurity-assessments/"><span>M&#038;A Cybersecurity Assessments</span></a></li>
+</ul>
+</li>
+<li id="menu-item-2490" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-2490"><a href="#"><span>Company</span></a>
+<ul class="sub-menu">
+	<li id="menu-item-523" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-523"><a href="https://www.volexity.com/company/about-us/"><span>About</span></a></li>
+	<li id="menu-item-5212" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5212"><a href="https://www.volexity.com/events/"><span>Events</span></a></li>
+	<li id="menu-item-2298" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-2298"><a href="https://www.volexity.com/company/news/"><span>News &#038; Press</span></a></li>
+	<li id="menu-item-533" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-533"><a href="https://www.volexity.com/company/careers/"><span>Careers</span></a></li>
+	<li id="menu-item-2344" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-2344"><a href="https://www.volexity.com/internships/"><span>Internships</span></a></li>
+	<li id="menu-item-532" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-532"><a href="https://www.volexity.com/company/resources/"><span>Resources</span></a></li>
+</ul>
+</li>
+<li id="menu-item-516" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-516"><a href="https://www.volexity.com/blog/"><span>Blog</span></a></li>
+<li id="menu-item-530" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-530"><a href="https://www.volexity.com/contact/"><span>Contact</span></a></li>
+</ul></div>						</section>
+																<section class="main-menu-utility container container-wide">
+
+							<ul id="menu-utility-menu" class="main-menu-utility__container"><li id="menu-item-1605" class=' menu-item menu-item-type-post_type menu-item-object-page menu-item--0'><a href="https://www.volexity.com/contact/demo-request/" class="menu-item__link menu-item__link--0">Request A Demo</a></li>
+<li id="menu-item-507" class=' menu-item menu-item-type-post_type menu-item-object-page menu-item--0'><a href="https://www.volexity.com/contact/breach-assistance/" class="menu-item__link menu-item__link--0">Breach Assistance</a></li>
+</ul>
+						</section>
+					
+				</div>
+			</div>
+		</div>
+	</section>
+
+</header>
+
+	<main class="site-main" id="main">
+		<nav class="breadcrumbs breadcrumbs--shallow"
+	 aria-label="Breadcrumb">
+	<div class="container container-narrow">
+		<ol class="breadcrumbs__list" itemscope itemtype="https://schema.org/BreadcrumbList">
+
+							<li class="breadcrumbs__crumb" itemscope itemprop="itemListElement"
+					itemtype="https://schema.org/ListItem">
+																		<a class="breadcrumbs__link" itemprop="item"
+								href="https://www.volexity.com/blog/"
+															>
+								<span itemprop="name">Blog</span>
+							</a>
+																<meta itemprop="position" content="1"/>
+				</li>
+											<li class="breadcrumbs__crumb" itemscope itemprop="itemListElement"
+					itemtype="https://schema.org/ListItem">
+																					<meta itemprop="position" content="2"/>
+				</li>
+									</ol>
+	</div>
+
+</nav>
+<section class="mgpb-hero mgpb-hero--detail mgpb-hero--light-blue mgpb-hero--none mgpb-hero--image" >
+	
+	
+	<div class="mgpb-hero__container container">
+		<div class="row">
+			<div class="col-12">
+				<div class="mgpb-hero__inner d-flex flex-column align-items-center justify-content-between flex-lg-row">
+					<div class="mgpb-hero__content">
+						<div>
+															<p class="mgpb-hero__label mb-2">
+									<span class="mgpb-chip mgpb-chip--square" style="">Threat Intelligence</span>
+								</p>
+							
+															<h1 class="mgpb-hero__heading heading heading--hero mb-6">
+									Active Exploitation of Two Zero-Day Vulnerabilities in Ivanti Connect Secure VPN								</h1>
+
+								<p class="mgpb-hero__date heading--4">January 10, 2024</p>
+
+																	<p class="mgpb-hero__byline body--large mt-2">Matthew Meltzer, Robert Jan Mora, Sean Koessel, Steven Adair, and Tom Lancaster</p>
+																					</div>
+					</div>
+
+									</div>
+			</div>
+		</div>
+	</div>
+</section>
+	<div class="after-hero">
+	
+<section class="mgpb-wysiwyg  mt-12 mb-12">
+	<div class="mgpb-wysiwyg__container container">
+		<div class="wysiwyg">
+			<p><img class="aligncenter size-full wp-image-3033" src="https://www.volexity.com/wp-content/uploads/2024/01/Volexity-Active-Exploitation-of-Two-Zero-Day-Vulnerabilities-in-Ivanti-Connect-Secure-VPN-Jan10.png" alt="" width="2060" height="1076" /></p>
+<p style="font-weight: 400"><strong><em>Volexity has uncovered active in-the-wild exploitation of </em></strong><strong><em>two </em></strong><strong><em>vulnerabilities allowing unauthenticated remote code execution in Ivanti Connect Secure VPN devices. An </em></strong><strong><em><a href="https://forums.ivanti.com/s/article/CVE-2023-46805-Authentication-Bypass-CVE-2024-21887-Command-Injection-for-Ivanti-Connect-Secure-and-Ivanti-Policy-Secure-Gateways" target="_blank" rel="noopener">official security advisory</a> and <a href="https://forums.ivanti.com/s/article/KB-CVE-2023-46805-Authentication-Bypass-CVE-2024-21887-Command-Injection-for-Ivanti-Connect-Secure-and-Ivanti-Policy-Secure-Gateways" target="_blank" rel="noopener">knowledge base article </a>have </em></strong><strong><em>been released by Ivanti </em></strong><strong><em>that includes mitigation that should be applied immediately. However, a mitigation does not remedy a past or ongoing compromise. Systems should simultaneously be thoroughly analyzed per details in this post to look for signs </em></strong><strong><em>of </em></strong><strong><em>a breach.</em></strong></p>
+<p style="font-weight: 400">During the second week of December 2023, Volexity detected suspicious lateral movement on the network of one of its Network Security Monitoring service customers. Upon closer inspection, Volexity found that an attacker was placing webshells on multiple internal and external-facing web servers. These detections kicked off an incident response investigation across multiple systems that Volexity ultimately tracked back to the organization&#8217;s Internet-facing Ivanti Connect Secure (ICS) VPN appliance (formerly known as Pulse Connect Secure, or simply Pulse Secure). A closer inspection of the ICS VPN appliance showed that its logs had been wiped and logging had been disabled. Further review of historic network traffic from the device also revealed suspect outbound and inbound communication from its management IP address. Volexity found that there was suspect activity originating from the device as early as December 3, 2023.</p>
+<p style="font-weight: 400">At this point in its incident response investigation, Volexity suspected a zero-day exploit was likely at play but did not yet have enough evidence to support this theory. Volexity and its customer worked closely with Ivanti in order to obtain disk and memory images from the impacted devices. Forensic analysis of the collected data provided insight into a variety of the attacker&#8217;s tools, malware, and methods for operating.</p>
+<p style="font-weight: 400">Most notably, Volexity analyzed one of the collected memory samples and uncovered the exploit chain used by the attacker. Volexity discovered two different zero-day exploits which were being chained together to achieve unauthenticated remote code execution (RCE). Through forensic analysis of the memory sample, Volexity was able to recreate two proof-of-concept exploits that allowed full unauthenticated command execution on the ICS VPN appliance. These two vulnerabilities have been assigned the following CVEs:</p>
+<ul>
+<li><a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-46805">CVE-2023-46805</a> &#8211; an authentication-bypass vulnerability with a CVSS score of 8.2</li>
+<li><a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-21887">CVE-2024-21887</a> &#8211; a command-injection vulnerability found into multiple web components with a CVSS score of 9.1</li>
+</ul>
+<p style="font-weight: 400">When combined, these two vulnerabilities make it trivial for attackers to run commands on the system. In this particular incident, the attacker leveraged these exploits to steal configuration data, modify existing files, download remote files, and reverse tunnel from the ICS VPN appliance. Volexity observed the attacker modifying legitimate ICS components and making changes to the system to evade the ICS Integrity Checker Tool. Notably, Volexity observed the attacker backdooring a legitimate CGI file (<code>compcheckresult.cgi</code>) on the ICS VPN appliance to allow command execution. Further, the attacker also modified a JavaScript file used by the Web SSL VPN component of the device in order to keylog and exfiltrate credentials for users logging into it. The information and credentials collected by the attacker allowed them to pivot to a handful of systems internally, and ultimately gain unfettered access to systems on the network.</p>
+<p style="font-weight: 400">This blog post covers key findings from Volexity&#8217;s forensic analysis and incident response investigation, as well as advice for detecting successful exploitation. Volexity currently attributes this activity to an unknown threat actor it tracks under the alias <strong>UTA0178</strong>. Volexity has reason to believe that UTA0178 is a Chinese nation-state-level threat actor.</p>
+<h2 style="font-weight: 400"><strong>Incident Investigation</strong></h2>
+<p style="font-weight: 400">Volexity&#8217;s customer has permitted the sharing of this incident investigation in order to shed light on the attacker&#8217;s actions and potentially assist other organizations in jump-starting their investigations. Volexity used telemetry from its own Network Security Sensors, client EDR software, and forensic data collected from multiple systems to paint a thorough picture of the attacker’s actions. As noted, Volexity&#8217;s investigation did not start with the ICS VPN appliance, but both forensic and network traffic analysis quickly led to that device. This allowed Volexity to zero in and scrutinize activity associated with the ICS VPN appliance.</p>
+<p style="font-weight: 400">Below are the highlights of Volexity’s observations when analyzing network traffic from ICS VPN appliances over the course of this incident:</p>
+<ul style="font-weight: 400">
+<li>Outbound connections via curl to an IP Geolocation service via <strong>ip-api[.]com</strong> and to Cloudflare&#8217;s <strong>1.1.1.1</strong> IP address on multiple occasions</li>
+<li>Reverse SOCKS proxy and SSH tunnel connections back through compromised Cyberoam appliances</li>
+<li>Download of tooling from a compromised Cyberoam appliance</li>
+<li>Reconnaissance of internal websites through proxied connections</li>
+<li>Lateral movement using compromised credentials to connect to internal systems via RDP, SMB, and SSH</li>
+<li>Transfer of multiple webshell variants, which Volexity calls <strong>GLASSTOKEN</strong>, to Internet-accessible web servers and systems that were only internally accessible.</li>
+</ul>
+<p style="font-weight: 400">Once the ICS VPN appliance had been identified as compromised, Volexity collected key evidence from it. This included data collected from the device using the <a href="https://forums.ivanti.com/s/article/KB44755?language=en_US">Integrity Checking Tool</a> Ivanti provides to identify mismatched files on the device. Customers are encouraged to open a support ticket with Ivanti in the event they see any signs of compromise, including new or mismatched files as identified by the Integrity Checker Tool. Volexity worked closely with Ivanti to obtain a decrypted version of the snapshot produced by the Integrity Checker Tool, as well as memory and disk images. Over the course of the incident, Volexity obtained multiple memory and disk images from multiple devices.</p>
+<p style="font-weight: 400">Volexity used a combination of memory and disk forensics, combined with the results of the Integrity Checker Tool, to quickly zero in on multiple malicious files placed on the compromised Ivanti Connect Secure VPN appliance. Below is a list of key files Volexity identified*.</p>
+<div class="mgpb-table-wrapper"><table class="table table--style-2" style="font-weight: 400;width: 764px" width="764">
+<thead>
+<tr>
+<td width="338"><strong>Filename</strong></td>
+<td width="164"><strong>Description</strong></td>
+<td width="263"><strong>Purpose</strong></td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td width="338"><code>/home/perl/DSLogConfig.pm</code></td>
+<td width="164">Modified Perl module</td>
+<td width="263">Designed to execute <code><strong>sessionserver.pl</strong></code></td>
+</tr>
+<tr>
+<td width="338"><code>/home/etc/sql/dsserver/sessionserver.pl</code></td>
+<td width="164">Perl script to remount the filesystem with read/write access</td>
+<td width="263">Make <strong><code>sessionserver.sh</code> </strong>executable, execute it, then restore original mount settings</td>
+</tr>
+<tr>
+<td width="338"><code>/home/etc/sql/dsserver/sessionserver.sh</code></td>
+<td width="164">Script executed by <code><strong>sessionserver.pl</strong></code></td>
+<td width="263">Uses regular expressions to modify<code> <strong>compcheckresult.cgi</strong> </code>to insert a webshell into it; also creates a series of entries into files associated with the In-build Integrity Checker Tool to evade detection when periodic scans are run</td>
+</tr>
+<tr>
+<td width="338"><code>/home/webserver/htdocs/dana-na/auth/compcheckresult.cgi</code></td>
+<td width="164">Modified legitimate component of the ICS VPN appliance, with new Perl module imports added and a one-liner to execute commands based on request parameters</td>
+<td width="263">Allows remote code execution over the Internet if the attacker can craft a requests with the correct parameters</td>
+</tr>
+<tr>
+<td width="338"><code>/home/webserver/htdocs/dana-na/auth/lastauthserverused.js</code></td>
+<td width="164">Modified legitimate JavaScript component loaded by user login page of the Web SSL VPN component of ICS</td>
+<td width="263">Modified to harvest entered credentials and send them to a remote URL on an attacker-controlled domain</td>
+</tr>
+</tbody>
+</table></div>
+<p style="font-weight: 400">*<em>Analysis of additional files is ongoing, and Volexity will update this blog post if necessary.</em></p>
+<p style="font-weight: 400">Volexity also believes the attacker created and executed a number of files from the system&#8217;s <code>/tmp/</code> directory that were no longer on disk at the time of analysis. Based on entries related to the exclusions list designed to evade the In-build Integrity Checker Tool, Volexity believes the following files were previously on disk at the following paths:</p>
+<ul style="font-weight: 400">
+<li><code>/tmp/rev</code></li>
+<li><code>/tmp/s.py</code></li>
+<li><code>/tmp/s.jar</code></li>
+<li><code>/tmp/b</code></li>
+<li><code>/tmp/kill</code></li>
+</ul>
+<p style="font-weight: 400">By carving files from the disk images, despite the file having been deleted, Volexity was able to recover a Python-based proxy utility it believes was likely <code>s.py</code>. This was discovered to be a copy of PySoxy, a SOCKS5 proxy written in Python, which is <a href="https://github.com/MisterDaneel/pysoxy/blob/master/pysoxy.py">available on GitHub</a>.</p>
+<h2 style="font-weight: 400"><strong>Malware, Tools, and Living off the Land</strong></h2>
+<p style="font-weight: 400">While Volexity largely observed the attacker essentially living off the land, they still deployed a handful of malware files and tools during the course of the incident which primarily consisted of webshells, proxy utilities, and file modifications to allow credential harvesting. Once UTA0178 had access into the network via the ICS VPN appliance, their general approach was to pivot from system to system using compromised credentials. They would then further compromise credentials of users on any new system that was breached, and use these credentials to log into additional systems via RDP. Volexity observed the attacker obtaining credentials in a variety of ways, as detailed below:</p>
+<ul style="font-weight: 400">
+<li>In multiple instances, the attacker was able to use credentials they had compromised to log into various workstations and servers and dump the memory of the LSASS process to disk using Task Manager. The attacker then exfiltrated this output to extract further credentials offline.</li>
+<li>The attacker was able to access a system containing Virtual Hard Disk backups, which included a backup of a domain controller. They mounted this virtual hard disk and extracted the Active Directory database ntds.dit file from it, and compressed it using 7-Zip.</li>
+<li>The attacker discovered an instance of <a href="https://www.veeam.com/">Veeam</a> backup software that was in use and used <a href="https://github.com/sadshade/veeam-creds">a script available on GitHub</a> to dump credentials from it.</li>
+<li>As previously noted, the attacker modified JavaScript loaded by the Web SSL VPN login page for the ICS VPN Appliance to capture any credentials entered in it.</li>
+</ul>
+<p style="font-weight: 400">Using this access in the network, Volexity largely observed mostly reconnaissance and exploration of systems by UTA0178. This primarily consisted of looking through user files, configuration files, and testing access to systems. The primary notable activity beyond that was deployment of webshells to multiple systems. Volexity has not yet observed UTA0178 deploying any more advanced malware implants or persistence mechanisms outside of webshells.  Below is a summary of the type of webshell activity Volexity observed:</p>
+<ul style="font-weight: 400">
+<li>The attacker modified a legitimate ICS VPN component (<code>compcheckresult.cgi</code>) to support execution of remote command.</li>
+<li>The attacker deployed Version 1 of a webshell Volexity calls GLASSTOKEN to multiple Internet-accessible webservers.</li>
+<li>The attacker deployed Version 2 of the GLASSTOKEN webshell to an internal, non-Internet-accessible server.</li>
+</ul>
+<p style="font-weight: 400">Outside of the ability to execute commands on the ICS VPN appliance, these webshells appear to be the primary method the attacker would rely on for persistent access to the network. Additional details on some of the various observed malware and tools are described below.</p>
+<h3 style="font-weight: 400"><strong>GLASSTOKEN: A Custom Webshell</strong></h3>
+<p style="font-weight: 400">UTA0178 planted webshells on external-facing web servers in order to grant persistence to the customer environment. They could then use the webshells to execute commands on those devices. Only two variations of the same webshell were used in the attack.</p>
+<h4 style="font-weight: 400"><strong>Version 1</strong></h4>
+<p style="font-weight: 400">This version of the webshell has two code paths depending on the parameters present in the request. The first code path is almost identical to the “tunnel” template present in <a href="https://github.com/L-codes/Neo-reGeorg/blob/master/templates/tunnel.aspx">ReGeorg</a>, which was used to relay a connection. The second code path is a classic code execution case where content from the request parameters is decoded from hex and then base64 decoded before being passed to <a href="https://learn.microsoft.com/en-us/dotnet/api/system.reflection.assembly.load?view=net-8.0">Assembly.Load()</a>. Based on evidence discovered, this was primarily used to execute arbitrary PowerShell commands. The full code from the webshell is available <a href="https://github.com/volexity/threat-intel/blob/main/2024/2024-01-10%20Ivanti%20Connect%20Secure/attachments/glasstoken_v1.aspx">here</a>.</p>
+<h4 style="font-weight: 400"><strong>Version 2</strong></h4>
+<p style="font-weight: 400">The second version of the webshell is almost exactly the same as the first, but it contains only the second code path to allow code execution. This version omits the native tunneling capability. The full code for this version is available <a href="https://github.com/volexity/threat-intel/blob/main/2024/2024-01-10%20Ivanti%20Connect%20Secure/attachments/glasstoken_v2.aspx">here</a>.</p>
+<h3 style="font-weight: 400"><strong>JS Credential Theft</strong></h3>
+<p style="font-weight: 400">As previously mentioned, to gain access to user credentials the attacker modified the file <code><strong>lastauthserverused.js</strong></code>, a legitimate component of the web app, modifying the &#8220;Login&#8221; function to POST user credentials to an attacker-controlled domain. This was done by adding the following code to the beginning of the function:</p>
+<p><img class="alignnone size-full wp-image-3029" src="https://www.volexity.com/wp-content/uploads/2024/01/js_data_theft-2.png" alt="" width="647" height="262" /></p>
+<p style="font-weight: 400">This would result in a GET request from the user&#8217;s browser back to the attacker website with the victim&#8217;s username and password being base64 encoded in the request.</p>
+<h3 style="font-weight: 400"><strong>visits.py modification &#8211; GIFTEDVISITOR</strong></h3>
+<p style="font-weight: 400">The attacker also modified another inbuilt component of Ivanti Connect Secure named <code><strong>visits.py</strong></code> adding a webshell component Volexity refers to as GIFTEDVISITOR.<strong> </strong>The code in this function is called whenever users access <strong><code>/api/v1/cav/client/visits</code>.</strong> The modification to this code was to add the following additional code to the handler for POST requests:</p>
+<p><img class="alignnone size-full wp-image-3028" src="https://www.volexity.com/wp-content/uploads/2024/01/visits.py_.png" alt="" width="855" height="467" /></p>
+<h2>Detecting Compromise</h2>
+<p style="font-weight: 400">There are three primary methods organizations can use to detect activity associated with a compromised Ivanti Connect Secure VPN appliance:</p>
+<ul style="font-weight: 400">
+<li>Network traffic analysis</li>
+<li>VPN device log analysis</li>
+<li>Execution of the Integrity Checker Tool</li>
+</ul>
+<p style="font-weight: 400">The sections that follow describe what organizations can do to look for signs of compromise across these different categories. Any of these methods can provide strong evidence that the ICS VPN appliance is compromised. Should signs of compromise be identified, the section titled <em>Responding to Compromise</em> can be used for what to do next.</p>
+<h3 style="font-weight: 400"><strong>Network Traffic Analysis</strong></h3>
+<p style="font-weight: 400">One method organizations can use to look for signs of compromise is examine anomalous traffic originating from their VPN appliances. This includes both traffic destined for the Internet from the appliance and traffic from it to systems internally. While these devices are configured to allow remote users access into the network, IP addresses assigned to VPN users are typically separate from IP addresses used by the VPN appliance itself. Organizations can examine outbound network traffic from the VPN appliance to look for connections atypical of the device. From Volexity&#8217;s Network Security Monitoring of client networks, it typically sees the VPN appliance connect back to <strong>download.pulsesecure[.]net </strong>and to any other customer-configured integrations, such as to an SSO or MFA provider. Example activity that Volexity observed from compromised VPN appliances that was irregular include the following:</p>
+<ul style="font-weight: 400">
+<li>curl requests to remote websites</li>
+<li>SSH connections back to remote IPs</li>
+<li>Encrypted connections to hosts not associated with SSO/MFA providers or device updates</li>
+</ul>
+<p style="font-weight: 400">Further, Volexity was able to detect threat activity by observing inbound network traffic from IP addresses associated with the VPN appliances. There is likely an expected amount of internal traffic associated with these devices for DNS services, directory integrations, and other related traffic that should be consistently seen. However, other internal traffic that Volexity observed that was not expected included the following:</p>
+<ul style="font-weight: 400">
+<li>RDP and SMB activity to internal systems</li>
+<li>SSH attempts to internal systems</li>
+<li>Port scanning against hosts to look for systems with accessible services</li>
+</ul>
+<p style="font-weight: 400">Volexity works with its customer to monitor their networks both internally and externally. At a minimum, any traffic analysis is likely to detect externally destined traffic. However, internal monitoring or hunting can also be accomplished by leveraging endpoint detection and response (EDR) products should the attacker attempt to connect to a system running the software. Searching or monitoring EDR products for this activity is another method to detect this threat.</p>
+<h3 style="font-weight: 400"><strong>VPN Device Log Analysis</strong></h3>
+<p style="font-weight: 400">Another great method for detecting threats on ICS VPN appliances is to monitor its logs. The good news is that these devices log quite a bit. These logs can be accessed via <strong>System -&gt; Log/Monitoring</strong> from the admin interface. The logs can then be viewed on the web or exported for offline analysis. A SYSLOG server can also be configured to ensure these logs are sent to another destination and cannot be wiped or tampered with.</p>
+<p style="font-weight: 400">Volexity recommends organizations enable the setting to log &#8220;Unauthenticated Requests&#8221;. This can be configured by accessing the <em>Log Settings</em> page under <em>User Access</em> from within the <em>Log/Monitoring</em> page. With this setting configured, unauthenticated web requests made to the ICS VPN appliance are recorded in the user logs. This can potentially help spot exploitation, data exfiltration, or other events related to an attacker attempting gain unauthorized access to the device. In a<a href="https://www.volexity.com/blog/2019/09/11/vulnerable-private-networks-corporate-vpns-exploited-in-the-wild/"> previous blog post</a>, Volexity covered how these logs could be used to observe exploitation of Pulse Secure appliances. In that case, attackers were taking advantage of a vulnerability to steal database files that contain credentials and session information.</p>
+<p style="font-weight: 400">Volexity found the following cases to be useful for detecting compromise when examining logs from ICS VPN appliances:</p>
+<ul style="font-weight: 400">
+<li><strong>Logs are wiped and/or disabled.</strong> In at least one case, Volexity observed the threat actor clearing logs and disabling further logging. This can be a strong indicator of compromise, especially if you know logging should be and was previously working.</li>
+<li><strong>Requests for files in valid but atypical paths.</strong> Unauthenticated request logging will capture requests made for any sort of web scanning. However, examining requests for valid ICS VPN appliance paths that are valid but not commonly seen can be a potential indicator of compromise. On multiple occasions, Volexity observed the threat actor accessing files they stored data exfiltration in via files found in the<code>/dana-na/help/</code>  directory.</li>
+<li><strong>Detections from the In-build Integrity Checker Tool.</strong> Starting with PCS 9.1R12, ICS VPN appliances have a <a href="https://forums.ivanti.com/s/article/KB44859">built-in version</a> of the integrity checker tool. This tool can be scheduled to run automatically and will log if new or mismatched files are detected. This can be an extremely strong indicator that your ICS VPN appliance is compromised. In the web interface, under <em>Event Logs</em> in <em>Log/Monitoring</em>, these events will show up as <strong>SYS32039 </strong>and <strong>SYS32040</strong>. These IDs only show up in the web interface, will only appear as a &#8220;<strong>critical</strong>&#8221; event in the downloaded log, and will display text such as &#8220;<em>Integrity Scan Completed: Detected 2 new files</em>&#8220;. If any new or mismatched files are listed, the device should be considered compromised.</li>
+</ul>
+<p style="font-weight: 400">The image below shows an example of what would be displayed in the web console if the In-build Integrity Checker Tool finds new files (SYS32039). A similar message will be displayed if mismatched files are identified (SYS32040).</p>
+<p><a href="https://www.volexity.com/wp-content/uploads/2024/01/volexity-ics-pulse-in-build-integrity-check-results.png"><img loading="lazy" class="size-large wp-image-3018 alignnone" src="https://www.volexity.com/wp-content/uploads/2024/01/volexity-ics-pulse-in-build-integrity-check-results-1024x105.png" alt="" width="1024" height="105" /></a></p>
+<p style="font-weight: 400">Now for the bad news. At least as of the time of writing, the web requests associated with the exploits being used in the wild will not appear in the logs, even with the Unauthenticated Request setting enabled. This means that you cannot tell from logs if the server is being exploited.</p>
+<h3 style="font-weight: 400"><strong>Executing the Integrity Checker Tool</strong></h3>
+<p style="font-weight: 400">In addition to the built-in version, Ivanti has an enhanced version of the Integrity Checker Tool that can be run on ICS VPN appliances, which organizations can download. Once saved locally, the tool is run by uploading a package to the server and installing it as a Service Pack. The tool will then run and display its results on screen. This includes whether or not any new or mismatched files are discovered. <strong>Note: Running the Integrity Checker Tool will reboot the ICS VPN appliance, which will result in the contents of system memory largely being overwritten. </strong>If you have indicators of compromise prior to running this tool, it is recommended to not run the tool until you can collect memory and other forensic artifacts.</p>
+<p style="font-weight: 400">The image below shows an example of what it looks like when the Integrity Checker Tool is run on a compromised system.</p>
+<p><a href="https://www.volexity.com/wp-content/uploads/2024/01/ics-pulse-integrity-check-results-e1704816914384.png"><img loading="lazy" class="aligncenter wp-image-3014 size-large" src="https://www.volexity.com/wp-content/uploads/2024/01/ics-pulse-integrity-check-results-e1704816914384-1024x374.png" alt="" width="1024" height="374" /></a></p>
+<p style="font-weight: 400">As highlighted in the image, a strong indicator of potential compromise can be seen in Steps 8 and 9. These fields show values for &#8220;Mis-matched Files = &#8221; and &#8220;Newly detected Files = &#8221; that are greater than 0. Once the ICS VPN appliance reboots, an encrypted snapshot of the unexpected files is saved and accessible for download. This file can be provided to Ivanti to be decrypted and will contain an archival copy of the unexpected files identified.</p>
+<p style="font-weight: 400">Additional details about the tool, how to download it, and how deploy it can be found in <a href="https://forums.ivanti.com/s/article/KB44755">KB44755</a>.</p>
+<h2 style="font-weight: 400"><strong>Responding to Compromise</strong></h2>
+<p style="font-weight: 400">If you discover that your ICS VPN appliance is compromised, it is important to take immediate action. You do not want to simply wipe and rebuild the ICS VPN appliance. Collecting logs, system snapshots, and forensics artifacts (memory and disk) from the device are crucial. Pivoting to analyzing internal systems and tracking potential lateral movement should be done as soon as possible. Further, any credentials, secrets, or other sensitive data that may have been stored on the ICS VPN appliance should be considered compromised. This may warrant password resets, changing of secrets, and additional investigations.</p>
+<p style="font-weight: 400">Volexity strongly recommends that organizations look for signs of lateral movement internally from their ICS VPN appliance that is not consistent with expected behavior from the device. Proactive checks of any externally facing infrastructure may also be warranted if internal visibility is limited.</p>
+<p style="font-weight: 400">If any organization needs assistance validating or responding to a breach, please feel free to contact Volexity for <a href="https://www.volexity.com/company/contact/breach-assistance/"><strong>breach assistance</strong></a>.</p>
+<h2 style="font-weight: 400"><strong>Conclusion</strong></h2>
+<p style="font-weight: 400">As organizations continue to improve and harden their defense, attackers are continually looking for ways to bypass them. Internet-accessible systems, especially critical devices like VPN appliances and firewalls, have once again become a favorite target of attackers. These systems often sit on critical parts of the network, cannot run traditional security software, and typically sit at the perfect place for an attacker to operate. Organizations need to make sure they have a strategy in place to be able to monitor activity from these devices and quickly respond if something unexpected occurs.</p>
+<p style="font-weight: 400">It is critically important that organizations immediately apply the available mitigation from Ivanti and the patch that will follow. However, applying mitigations and patches will not resolve past compromise. It is important that organizations running ICS VPN appliances review their logs, network telemetry, and Integrity Checker Tool results (past and present) to look for any signs of successful compromise.</p>
+<div class="mgpb-table-wrapper"><table class="table table--style-2" style="font-weight: 400;width: 669px" width="669">
+<thead>
+<tr>
+<td width="261"><strong>Value</strong></td>
+<td width="183"><strong>Entity_type</strong></td>
+<td width="226"><strong>Description</strong></td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td width="261">206.189.208.156</td>
+<td width="183">ipaddress</td>
+<td width="226">DigitalOcean IP address tied to UTA0178</td>
+</tr>
+<tr>
+<td width="261">gpoaccess[.]com</td>
+<td width="183">hostname</td>
+<td width="226">Suspected UTA0178 domain discovered via domain registration patterns</td>
+</tr>
+<tr>
+<td width="261">webb-institute[.]com</td>
+<td width="183">hostname</td>
+<td width="226">Suspected UTA0178 domain discovered via domain registration patterns</td>
+</tr>
+<tr>
+<td width="261">symantke[.]com</td>
+<td width="183">hostname</td>
+<td width="226">UTA0178 domain used to collect credentials from compromised devices</td>
+</tr>
+<tr>
+<td width="261">75.145.243.85</td>
+<td width="183">ipaddress</td>
+<td width="226">UTA0178 IP address observed interacting with compromised device</td>
+</tr>
+<tr>
+<td width="261">47.207.9.89</td>
+<td width="183">ipaddress</td>
+<td width="226">UTA0178 IP address observed interacting with compromised device tied to Cyberoam proxy network</td>
+</tr>
+<tr>
+<td width="261">98.160.48.170</td>
+<td width="183">ipaddress</td>
+<td width="226">UTA0178 IP address observed interacting with compromised device tied to Cyberoam proxy network</td>
+</tr>
+<tr>
+<td width="261">173.220.106.166</td>
+<td width="183">ipaddress</td>
+<td width="226">UTA0178 IP address observed interacting with compromised device tied to Cyberoam proxy network</td>
+</tr>
+<tr>
+<td width="261">73.128.178.221</td>
+<td width="183">ipaddress</td>
+<td width="226">UTA0178 IP address observed interacting with compromised device tied to Cyberoam proxy network</td>
+</tr>
+<tr>
+<td width="261">50.243.177.161</td>
+<td width="183">ipaddress</td>
+<td width="226">UTA0178 IP address observed interacting with compromised device tied to Cyberoam proxy network</td>
+</tr>
+<tr>
+<td width="261">50.213.208.89</td>
+<td width="183">ipaddress</td>
+<td width="226">UTA0178 IP address observed interacting with compromised device tied to Cyberoam proxy network</td>
+</tr>
+<tr>
+<td width="261">64.24.179.210</td>
+<td width="183">ipaddress</td>
+<td width="226">UTA0178 IP address observed interacting with compromised device tied to Cyberoam proxy network</td>
+</tr>
+<tr>
+<td width="261">75.145.224.109</td>
+<td width="183">ipaddress</td>
+<td width="226">UTA0178 IP address observed interacting with compromised device tied to Cyberoam proxy network</td>
+</tr>
+<tr>
+<td width="261">50.215.39.49</td>
+<td width="183">ipaddress</td>
+<td width="226">UTA0178 IP address observed interacting with compromised device tied to Cyberoam proxy network</td>
+</tr>
+<tr>
+<td width="261">71.127.149.194</td>
+<td width="183">ipaddress</td>
+<td width="226">UTA0178 IP address observed interacting with compromised device tied to Cyberoam proxy network</td>
+</tr>
+<tr>
+<td width="261">173.53.43.7</td>
+<td width="183">ipaddress</td>
+<td width="226">UTA0178 IP address observed interacting with compromised device tied to Cyberoam proxy network</td>
+</tr>
+</tbody>
+</table></div>
+<p style="font-weight: 400">Related indicators can also be downloaded from the Volexity GitHub page:</p>
+<ul style="font-weight: 400">
+<li><a href="https://github.com/volexity/threat-intel/blob/main/2024/2024-01-10%20Ivanti%20Connect%20Secure/indicators/yara.yar">YARA rules</a></li>
+<li><a href="https://github.com/volexity/threat-intel/blob/main/2024/2024-01-10%20Ivanti%20Connect%20Secure/indicators/iocs.csv">Single value indicators</a></li>
+</ul>
+<h2><strong>Acknowledgements</strong></h2>
+<p>Volexity would like to acknowledge the Ivanti team for their support in helping with the discovery, triage, and verification of the vulnerabilities discussed in this blog post. Throughout the incident response investigation and subsequent forensic analysis, Ivanti provided support that will ultimately protect organizations using the Ivanti Connect Secure software.</p>
+		</div>
+	</div>
+</section>
+	</div>
+	<section class="mgpb-tags mgpb-block">
+	<div class="mgpb-tags__container container">
+		<ul class="mgpb-tags__tags d-flex flex-wrap gap-1">
+						<li class="mgpb-tags__tag">
+				<a href="https://www.volexity.com/blog/tag/apt/" class="mgpb-chip mgpb-chip--blue-2">
+					APT				</a>
+			</li>
+						<li class="mgpb-tags__tag">
+				<a href="https://www.volexity.com/blog/tag/china/" class="mgpb-chip mgpb-chip--blue-2">
+					China				</a>
+			</li>
+						<li class="mgpb-tags__tag">
+				<a href="https://www.volexity.com/blog/tag/edge-device/" class="mgpb-chip mgpb-chip--blue-2">
+					edge device				</a>
+			</li>
+						<li class="mgpb-tags__tag">
+				<a href="https://www.volexity.com/blog/tag/exploit/" class="mgpb-chip mgpb-chip--blue-2">
+					Exploit				</a>
+			</li>
+						<li class="mgpb-tags__tag">
+				<a href="https://www.volexity.com/blog/tag/ivanti-connect-secure/" class="mgpb-chip mgpb-chip--blue-2">
+					ivanti connect secure				</a>
+			</li>
+						<li class="mgpb-tags__tag">
+				<a href="https://www.volexity.com/blog/tag/pulsesecure/" class="mgpb-chip mgpb-chip--blue-2">
+					pulsesecure				</a>
+			</li>
+						<li class="mgpb-tags__tag">
+				<a href="https://www.volexity.com/blog/tag/rce/" class="mgpb-chip mgpb-chip--blue-2">
+					RCE				</a>
+			</li>
+						<li class="mgpb-tags__tag">
+				<a href="https://www.volexity.com/blog/tag/vpn/" class="mgpb-chip mgpb-chip--blue-2">
+					VPN				</a>
+			</li>
+						<li class="mgpb-tags__tag">
+				<a href="https://www.volexity.com/blog/tag/webshell/" class="mgpb-chip mgpb-chip--blue-2">
+					webshell				</a>
+			</li>
+					</ul>
+	</div>
+</section>
+	</main>
+
+	<footer class="footer">
+	<div class="footer__container container d-flex flex-column">
+		<div class="footer__row">
+			<div class="footer__brand">
+				<a href="/" class="footer__logo"
+					aria-label="Logo linking to homepage">
+					<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 195 20">
+	<g>
+		<path d="m123.152 0-20.556 19.773h8.457L131.479 0h-8.327Z" fill="#4D9ED7" />
+		<path d="m118.52 14.724 5.154 5.049h8.327l-9.405-8.994-4.068 3.937-.008.008ZM103.509 0l8.605 8.443 3.998-3.85L111.305 0H103.5h.009ZM22.198.254 14.41 14.899 6.726.254H.103l10.508 19.519h7.51L28.638.253h-6.44ZM37.556 19.947c-.444 0-.895 0-1.365-.026-.47-.017-.843-.026-1.138-.044-.904 0-1.704-.148-2.4-.437a5.182 5.182 0 0 1-1.807-1.269c-.426-.437-.74-.883-.922-1.347-.26-.595-.452-1.417-.6-2.476-.138-1.059-.208-2.345-.208-3.858V7.953c0-.858.052-1.628.157-2.319.104-.691.252-1.347.46-1.995.452-1.426 1.443-2.432 2.973-2.992.556-.201 1.556-.358 2.99-.472C37.13.07 39.007.017 41.346.017h4.25c2.972 0 4.963.175 5.97.534 2.043.717 3.217 2.231 3.521 4.55.035.314.06.734.096 1.268.034.534.052 1.059.052 1.575l.052 3.21c0 1.357-.052 2.442-.148 3.273a8.144 8.144 0 0 1-.608 2.3c-.452 1.05-1.139 1.847-2.06 2.398-.921.551-2.069.822-3.442.822L46.03 20l-8.465-.053h-.01Zm7.518-4.986c.939 0 1.643-.036 2.112-.097.782-.105 1.347-.498 1.678-1.155.33-.665.495-2.082.495-4.252 0-1.11-.052-1.907-.156-2.397-.174-.91-.66-1.478-1.452-1.706-.26-.061-.556-.122-.886-.184a6.278 6.278 0 0 0-.983-.078l-3.78-.035h-2.13c-.33 0-.782 0-1.347.017-.565.009-.913.018-1.043.018-.487 0-.895.078-1.226.253-.33.167-.617.42-.843.762-.347.525-.521 2.108-.521 4.741 0 1.855.304 3.019.904 3.5.426.367 1.634.56 3.598.56l5.572.044.008.008ZM64.266.254v14.48h13.002v5.039H58.356V.253h5.91ZM79.415.254h21.33v4.55h-15.42v2.668h14.56v4.225h-14.56v3.526h15.594v4.55H79.415V.253ZM139.136.254h-5.91v19.519h5.91V.253ZM164.569.254v5.039h-8.492v14.48h-5.911V5.293h-8.5V.253h22.903ZM173.773.254l6.38 7.847 6.38-7.847h7.57l-11.03 12.712v6.807h-5.91v-6.807L166.168.254h7.605Z" fill="#64656A" />
+	</g>
+	<defs>
+		
+			<path fill="#fff" d="M0 0h194v20H0z" />
+		
+	</defs>
+</svg>
+				</a>
+				<p class="footer__copyright eyebrow">
+											&copy; 2026 Volexity Inc. All Rights Reserved.									</p>
+			</div>
+
+			<div class="footer__menu footer__menu--primary">
+				<ul id="menu-footer-menu" class="menu-footer menu-footer--primary"><li class=' menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children'><h2 class="eyebrow">About</h2>
+<ul class="sub-menu">
+<li class=' menu-item menu-item-type-post_type menu-item-object-page'><a href="https://www.volexity.com/company/about-us/">About</a></li>
+<li class=' menu-item menu-item-type-post_type menu-item-object-page'><a href="https://www.volexity.com/blog/">Blog</a></li>
+<li class=' menu-item menu-item-type-post_type menu-item-object-page menu-item-privacy-policy'><a href="https://www.volexity.com/privacy-policy/">Privacy Policy</a></li>
+</ul>
+</li>
+<li class=' menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children'><h2 class="eyebrow">Solutions</h2>
+<ul class="sub-menu">
+<li class=' menu-item menu-item-type-post_type menu-item-object-page'><a href="https://www.volexity.com/products-overview/">Products</a></li>
+<li class=' menu-item menu-item-type-post_type menu-item-object-page'><a href="https://www.volexity.com/services-overview/">Services</a></li>
+</ul>
+</li>
+</ul>			</div>
+
+			<div class="footer__contact">
+				<h2 class="eyebrow">Contact</h2>
+				<div class="footer__address body--semi-bold d-flex flex-column">
+					<p>11654 Plaza America Dr. #774<br />
+Reston, VA 20190</p>
+<p>+1 (888) 825-1975</p>
+				</div>
+			</div>
+
+			<div class="footer__menu footer__menu--secondary">
+									<h2 class="eyebrow">Connect</h2>
+					<div class="footer__buttons">
+													<a class="btn btn--icon" href="https://www.linkedin.com/company/volexity"
+								target="_blank"
+								aria-label="LinkedIn">
+								<span class="fa-classic fa-brands fa-linkedin-in" aria-hidden="true"></span>
+							</a>
+													<a class="btn btn--icon" href="https://bsky.app/profile/did:plc:z6yenb4npk2aibtsqkerghbo"
+								target="_blank"
+								aria-label="BlueSky">
+								<span class="fa-classic fa-brands fa-bluesky" aria-hidden="true"></span>
+							</a>
+													<a class="btn btn--icon" href="https://infosec.exchange/@volexity"
+								target="_blank"
+								aria-label="Mastadon">
+								<span class="fa-classic fa-brands fa-mastodon" aria-hidden="true"></span>
+							</a>
+													<a class="btn btn--icon" href="https://x.com/volexity"
+								target="_blank"
+								aria-label="Twitter (X)">
+								<span class="fa-classic fa-brands fa-x-twitter" aria-hidden="true"></span>
+							</a>
+													<a class="btn btn--icon" href="https://www.facebook.com/volexity"
+								target="_blank"
+								aria-label="Facebook">
+								<span class="fa-classic fa-brands fa-facebook-f" aria-hidden="true"></span>
+							</a>
+											</div>
+							</div>
+		</div>
+	</div>
+</footer>
+<div class="mgpb-gdpr mgpb-gdpr--hidden">
+	<div class="mgpb-gdpr__banner">
+		<div class="mgpb-gdpr__content">
+			<div class="mgpb-gdpr__message wysiwyg">
+				<p>This Website uses cookies, which are necessary to its functioning and required to achieve the purposes illustrated in our <a href="https://www.volexity.com/privacy-policy/">cookie policy</a>. By clicking the button, you consent to our use of cookies.</p>
+			</div>
+			<div class="mgpb-gdpr__buttons">
+				<button class="mgpb-gdpr-accept btn btn--primary">
+					<span class="icon icon-check" aria-hidden="true"></span>
+					<span>Agree &amp; Close</span>
+				</button>
+				<button class="mgpb-gdpr-reject btn btn--secondary">
+					<span class="icon icon-multiply" aria-hidden="true"></span>
+					<span class="sr-only">Decline</span>
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+<script type="speculationrules">
+{"prefetch":[{"source":"document","where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":["/wp-*.php","/wp-admin/*","/wp-content/uploads/*","/wp-content/*","/wp-content/plugins/*","/wp-content/themes/volexity/*","/*\\?(.+)"]}},{"not":{"selector_matches":"a[rel~=\"nofollow\"]"}},{"not":{"selector_matches":".no-prefetch, .no-prefetch a"}}]},"eagerness":"conservative"}]}
+</script>
+		<script>
+		( function ( body ) {
+			'use strict';
+			body.className = body.className.replace( /\btribe-no-js\b/, 'tribe-js' );
+		} )( document.body );
+		</script>
+		<script> /* <![CDATA[ */var tribe_l10n_datatables = {"aria":{"sort_ascending":": activate to sort column ascending","sort_descending":": activate to sort column descending"},"length_menu":"Show _MENU_ entries","empty_table":"No data available in table","info":"Showing _START_ to _END_ of _TOTAL_ entries","info_empty":"Showing 0 to 0 of 0 entries","info_filtered":"(filtered from _MAX_ total entries)","zero_records":"No matching records found","search":"Search:","all_selected_text":"All items on this page were selected. ","select_all_link":"Select all pages","clear_selection":"Clear Selection.","pagination":{"all":"All","next":"Next","previous":"Previous"},"select":{"rows":{"0":"","_":": Selected %d rows","1":": Selected 1 row"}},"datepicker":{"dayNames":["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],"dayNamesShort":["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],"dayNamesMin":["S","M","T","W","T","F","S"],"monthNames":["January","February","March","April","May","June","July","August","September","October","November","December"],"monthNamesShort":["January","February","March","April","May","June","July","August","September","October","November","December"],"monthNamesMin":["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],"nextText":"Next","prevText":"Prev","currentText":"Today","closeText":"Done","today":"Today","clear":"Clear"}};/* ]]> */ </script><script id="tec-user-agent-js" src="https://www.volexity.com/wp-content/plugins/the-events-calendar/common/build/js/user-agent.js?ver=da75d0bdea6dde3898df"></script>
+<script id="wp-dom-ready-js" src="https://www.volexity.com/wp-includes/js/dist/dom-ready.min.js?ver=3fe927cab37bf38d6a23"></script>
+<script id="theme-scripts-js-extra">
+var urls = {"base":"https://www.volexity.com","theme":"https://www.volexity.com/wp-content/themes/volexity","ajax":"https://www.volexity.com/wp-admin/admin-ajax.php"};
+//# sourceURL=theme-scripts-js-extra
+</script>
+<script id="theme-scripts-js" async="async" src="https://www.volexity.com/wp-content/themes/volexity/dist/scripts/theme-scripts.min.js?ver=1787540493"></script>
+<script crossorigin="anonymous" id="acffa_font-awesome-kit-js" src="https://kit.fontawesome.com/5cd7e6dbda.js?ver=7.1"></script>
+</body>
+</html>

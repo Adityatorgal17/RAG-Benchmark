@@ -1,7 +1,7 @@
 
 Project: academic comparison of RAG paradigms (see docs/IMPLEMENTATION_PLAN.md).
 
-- The plan is authoritative. Do not change models, libraries, parameters, prompts or file names.
+- The plan is authoritative except for model deprecations already reflected in `config.yaml`: keep `gemini-3.5-flash-lite` for the main LLM and Groq `openai/gpt-oss-20b` for the judge unless the user explicitly repins them.
 - Python 3.11, package src/ragc, tests in tests/ with pytest. No async, no web frameworks.
 - All LLM calls go through ragc.llm clients (cache, rate limit, retries). Never call an SDK directly elsewhere.
 - Every system implements System.run(qid, question) -> SystemResult and respects CallBudget (8 calls, 1 reserved for final generation).
