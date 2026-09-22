@@ -13,8 +13,8 @@ Core rule: all systems share the same corpus, chunks, generation prompt, LLM bud
 - Python 3.11.
 - Package code lives under `src/ragc`.
 - Tests use `pytest` with `pythonpath = src`.
-- Main LLM is configured in `config.yaml` as Gemini `gemini-3.5-flash-lite`.
-- Judge LLM is configured in `config.yaml` as Groq `openai/gpt-oss-20b`.
+- Main LLM is configured in `config.yaml` as Groq `openai/gpt-oss-20b`.
+- Judge LLM is configured in `config.yaml` as Gemini `gemini-3.5-flash-lite`.
 - Never hard-code model ids, paths, chunk sizes, thresholds, or budgets outside `config.yaml` unless a test fixture explicitly needs it.
 - Real API keys go in `.env`; do not print or commit them.
 
@@ -37,7 +37,7 @@ Core rule: all systems share the same corpus, chunks, generation prompt, LLM bud
 - **S6b**: utilization-driven multi-agent.
 - **S6c**: hybrid dynamic multi-agent with source routing.
 - **A1, A2a, A2b**: ablations for S6c routing and S2 post-retrieval steps.
-- **FakeLLM**: deterministic local LLM stub for tests and dry runs.
+- **FakeLLM**: deterministic local LLM stub for tests and dry runs that must not call external Gemini/Groq APIs. Retrieval, reranker, and NLI tests use the configured real local models.
 - **CallBudget**: per-question LLM call limit, usually 8 calls with 1 reserved for final generation.
 - **RRF**: Reciprocal Rank Fusion, used to merge ranked dense/BM25 lists.
 - **KEV / NVD / ATT&CK**: CISA Known Exploited Vulnerabilities, NIST vulnerability data, and MITRE ATT&CK technique documents.
@@ -109,10 +109,10 @@ Check available provider models:
 python scripts/check_models.py --provider both
 ```
 
-Pin the newest available Gemini flash-lite model:
+Check available Groq/Gemini models:
 
 ```bash
-python scripts/check_models.py --provider gemini --pin
+python scripts/check_models.py --provider both
 ```
 
 List corpus manifest targets:
@@ -139,7 +139,7 @@ Rebuild all corpus artifacts and indexes:
 python scripts/build_all.py --force
 ```
 
-Run one system on a few dev questions with FakeLLM:
+Run one system on a few dev questions without spending external LLM quota:
 
 ```bash
 python scripts/run_system.py --system S0 --split dev --limit 3 --fake
@@ -166,7 +166,7 @@ python scripts/run_judge.py --system S0 --split test
 Compute deterministic local metrics:
 
 ```bash
-python scripts/run_eval_local.py --system S0 --split test --dummy-nli
+python scripts/run_eval_local.py --system S0 --split test
 ```
 
 Build report tables:
@@ -181,7 +181,7 @@ Start the UI:
 PYTHONPATH=src uvicorn ui_server:app --reload
 ```
 
-Open `http://127.0.0.1:8000/`. The UI uses `FakeLLM` and existing chunks when available; otherwise it falls back to demo chunks.
+Open `http://127.0.0.1:8000/`. The UI uses existing corpus/index artifacts and the real configured main provider, currently Groq, when that provider's key is present in `.env`. Set `RAGC_UI_FAKE_LLM=1` only when you intentionally want a dry run without external quota.
 
 ## Implementation Guardrails
 
@@ -189,7 +189,8 @@ Open `http://127.0.0.1:8000/`. The UI uses `FakeLLM` and existing chunks when av
 - Register new or renamed systems in `src/ragc/systems/registry.py`.
 - Keep final generation through `ragc.generation.generator.generate`.
 - Keep LLM calls inside `ragc.llm` clients or `System.call_json`; do not call provider SDKs from systems.
-- Use `FakeLLM` in tests before real provider calls.
+- Use `FakeLLM` only for tests that exercise LLM orchestration without spending external provider quota; do not replace retrieval, reranker, or NLI models with hashed/dummy fallbacks.
+- Keep retrieval and control parameters in `config.yaml`: `retrieval.s0_k`, `retrieval.rrf_k`, `retrieval.dense_overfetch_multiplier`, each system's `retrieval.s*` settings, `post.*`, `context.max_tokens`, and `budget.*`.
 - Keep runs resumable: scripts skip existing result files and append judge outputs.
 - Respect `CallBudget`; systems should stop agent loops and proceed to final generation when budget is tight.
 - Preserve citation format `[chunk_id]`, where ids look like `doc_id#000`.
@@ -200,7 +201,6 @@ Open `http://127.0.0.1:8000/`. The UI uses `FakeLLM` and existing chunks when av
 
 ## Development Notes
 
-The retrieval layer is designed to keep tests runnable without heavy downloads. `TextEmbedder` can use sentence-transformers when `RAGC_USE_ST_EMBEDDINGS=1`, but falls back to stable hashed embeddings. `Reranker` tries to load the configured transformer model and falls back to a lexical dummy scorer if loading fails.
+The retrieval layer requires the configured transformer-backed components. `TextEmbedder` uses `sentence-transformers`, `Reranker` uses the configured cross-encoder, and `NLIFaith` uses the configured NLI model. Missing packages or model files should fail loudly instead of silently switching to hashed, lexical, or dummy scores.
 
 For corpus changes, regenerate in order: raw/processed corpus, chunks, indexes, lock, questions validation. For system behavior changes, add or update focused tests under `tests/` and run at least the affected test plus `pytest` when feasible.
-

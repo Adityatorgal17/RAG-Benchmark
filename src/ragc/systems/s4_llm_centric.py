@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 
-from ragc.generation.generator import extract_citations, generate
+from ragc.generation.generator import extract_citations
 from ragc.schemas import EvidenceItem, SystemResult
 from ragc.systems.base import System
 
@@ -18,6 +18,8 @@ class S4LLMCentricSystem(System):
 
     def run(self, qid: str, question: str) -> SystemResult:
         gate = {"retrieve": True}
+        retrieval_k = int(self.retrieval_param("s4", "k", 8))
+        reretrieve_k = int(self.retrieval_param("s4", "reretrieve_k", 3))
         if self.llm is not None:
             try:
                 payload = self.call_json(
@@ -29,12 +31,13 @@ class S4LLMCentricSystem(System):
                 text = payload.get("text") or "{}"
                 if isinstance(text, str):
                     gate = json.loads(text)
-            except Exception:
+            except Exception as exc:
+                self.record_error("s4_gate_error", exc)
                 gate = {"retrieve": True}
 
         if not bool(gate.get("retrieve", True)):
-            self.budget.spend(1)
-            answer, shown = generate(self.llm, question, [], no_evidence_mode=True, tag="s4_gate_false")
+            self.budget.spend_final(1)
+            answer, shown = self.generate_answer(question, [], no_evidence_mode=True, tag="s4_gate_false")
             return SystemResult(
                 system=self.name,
                 qid=qid,
@@ -46,9 +49,10 @@ class S4LLMCentricSystem(System):
                 final_evidence=shown,
                 usage=self.usage(),
                 trace=self.trace,
+                errors=self.errors,
             )
 
-        hits = self.retriever.dense(question, 8) if self.retriever is not None else []
+        hits = self.retriever.dense(question, retrieval_k) if self.retriever is not None else []
         candidate_ids = [hit.chunk_id for hit in hits]
 
         notes_payload = {"notes": []}
@@ -69,7 +73,8 @@ class S4LLMCentricSystem(System):
                 text = payload.get("text") or "{}"
                 if isinstance(text, str):
                     notes_payload = json.loads(text)
-            except Exception:
+            except Exception as exc:
+                self.record_error("s4_notes_error", exc)
                 notes_payload = {"notes": []}
 
         note_map = {
@@ -106,8 +111,8 @@ class S4LLMCentricSystem(System):
             )
 
         if not evidence:
-            self.budget.spend(1)
-            answer, shown = generate(self.llm, question, evidence, tag="s4_final")
+            self.budget.spend_final(1)
+            answer, shown = self.generate_answer(question, evidence, tag="s4_final")
             return SystemResult(
                 system=self.name,
                 qid=qid,
@@ -119,10 +124,11 @@ class S4LLMCentricSystem(System):
                 final_evidence=shown,
                 usage=self.usage(),
                 trace=self.trace,
+                errors=self.errors,
             )
 
         self.budget.spend(1)
-        answer1, _ = generate(self.llm, question, evidence, tag="s4_draft")
+        answer1, _ = self.generate_answer(question, evidence, tag="s4_draft")
 
         critique = {"supported": "full", "useful": 5, "unsupported_claims": [], "missing_parts": []}
         if self.llm is not None and not answer1.strip().upper().startswith("INSUFFICIENT_EVIDENCE"):
@@ -136,7 +142,8 @@ class S4LLMCentricSystem(System):
                 text = payload.get("text") or "{}"
                 if isinstance(text, str):
                     critique = json.loads(text)
-            except Exception:
+            except Exception as exc:
+                self.record_error("s4_critique_error", exc)
                 critique = {"supported": "full", "useful": 5, "unsupported_claims": [], "missing_parts": []}
 
         extra = ""
@@ -144,7 +151,7 @@ class S4LLMCentricSystem(System):
             missing = critique.get("missing_parts") or critique.get("unsupported_claims") or [question]
             query = str(missing[0]).strip() if isinstance(missing, list) and missing else question
             if query:
-                new_hits = self.retriever.dense(query, 3) if self.retriever is not None else []
+                new_hits = self.retriever.dense(query, reretrieve_k) if self.retriever is not None else []
                 for hit in new_hits:
                     if hit.chunk_id not in [item.chunk_id for item in evidence]:
                         chunk = self.retriever.get_chunk(hit.chunk_id) if self.retriever is not None else {}
@@ -158,8 +165,8 @@ class S4LLMCentricSystem(System):
                     + ". Rewrite the answer using ONLY the evidence above: remove unsupported claims and cover the missing parts if the evidence allows."
                 )
 
-        self.budget.spend(1)
-        final_answer, shown = generate(self.llm, question, evidence, extra=extra, tag="s4_final")
+        self.budget.spend_final(1)
+        final_answer, shown = self.generate_answer(question, evidence, extra=extra, tag="s4_final")
         abstained = final_answer.strip().upper().startswith("INSUFFICIENT_EVIDENCE")
         return SystemResult(
             system=self.name,
@@ -172,4 +179,5 @@ class S4LLMCentricSystem(System):
             final_evidence=shown,
             usage=self.usage(),
             trace=self.trace,
+            errors=self.errors,
         )

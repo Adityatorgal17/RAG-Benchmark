@@ -48,15 +48,18 @@ def post_refine(reranker, retriever, queries: list[str], candidates: list[str], 
     """Apply reranking, filtering, and compression to candidate chunks."""
     ranked = _score_candidates(reranker, queries, candidates, retriever, query_of, cfg=cfg)
 
-    keep_k = getattr(getattr(cfg, "retrieval", None), "s2", None)
-    keep_k = getattr(keep_k, "keep_k", 6) if keep_k is not None else 6
+    retrieval_cfg = getattr(cfg, "retrieval", None)
+    section_name = "s3" if query_of else "s2"
+    section_cfg = getattr(retrieval_cfg, section_name, None)
+    keep_k = getattr(section_cfg, "keep_k", 6) if section_cfg is not None else 6
     kept = [chunk_id for chunk_id, _ in ranked[:keep_k]]
 
     tau = float(getattr(getattr(cfg, "post", None), "tau", 0.15))
+    min_keep = int(getattr(getattr(cfg, "post", None), "min_keep", 2))
     if do_filter:
         filtered: list[str] = []
         for chunk_id, score in ranked[:keep_k]:
-            if score >= tau or len(filtered) < 2:
+            if score >= tau or len(filtered) < min_keep:
                 filtered.append(chunk_id)
         kept = filtered
 

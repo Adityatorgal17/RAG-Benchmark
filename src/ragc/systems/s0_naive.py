@@ -7,7 +7,7 @@ reference system for the naive RAG paradigm in the benchmark.
 
 from __future__ import annotations
 
-from ragc.generation.generator import extract_citations, generate
+from ragc.generation.generator import extract_citations
 from ragc.schemas import EvidenceItem, SystemResult
 from ragc.systems.base import System
 
@@ -16,7 +16,8 @@ class S0NaiveSystem(System):
     name = "S0"
 
     def run(self, qid: str, question: str) -> SystemResult:
-        hits = self.retriever.dense(question, k=5) if self.retriever is not None else []
+        k = int(self.cfg_get("retrieval", "s0_k", default=5))
+        hits = self.retriever.dense(question, k=k) if self.retriever is not None else []
         final_evidence: list[EvidenceItem] = []
         for hit in hits:
             chunk = self.retriever.get_chunk(hit.chunk_id) if self.retriever is not None else {}
@@ -31,8 +32,8 @@ class S0NaiveSystem(System):
                 )
             )
 
-        self.budget.spend(1)
-        answer, shown = generate(self.llm, question, final_evidence, tag="s0")
+        self.budget.spend_final(1)
+        answer, shown = self.generate_answer(question, final_evidence, tag="s0")
         abstained = answer.strip().upper().startswith("INSUFFICIENT_EVIDENCE")
         return SystemResult(
             system=self.name,
@@ -45,4 +46,5 @@ class S0NaiveSystem(System):
             final_evidence=shown,
             usage=self.usage(),
             trace=self.trace,
+            errors=self.errors,
         )

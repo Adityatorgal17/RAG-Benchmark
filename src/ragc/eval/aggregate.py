@@ -45,11 +45,15 @@ def _fmt(value: float | None, *, digits: int = 4) -> str:
 
 
 def _load_raw_results(results_root: str | Path) -> dict[tuple[str, str], dict]:
-    root = Path(results_root) / "raw"
+    results_root = Path(results_root)
+    root = results_root / "raw"
     rows: dict[tuple[str, str], dict] = {}
-    if not root.exists():
+    paths = sorted(root.glob("*/*.json")) if root.exists() else []
+    if not paths:
+        paths = sorted(results_root.glob("*.json"))
+    if not paths:
         return rows
-    for path in sorted(root.glob("*/*.json")):
+    for path in paths:
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):

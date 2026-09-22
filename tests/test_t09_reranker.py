@@ -1,9 +1,11 @@
+from ragc.config import load_config
 from ragc.eval.nli_faith import NLIFaith
 from ragc.retrieval.reranker import Reranker
 
 
 def test_reranker_and_nli_faithfulness():
-    reranker = Reranker(model_name="dummy", batch_size=2, max_length=128, verbose=False)
+    cfg = load_config()
+    reranker = Reranker(model_name=cfg.reranker.model, batch_size=2, max_length=128, verbose=False)
     scores = reranker.score([
         (
             "PAN-OS command injection issue in the web interface",
@@ -16,7 +18,7 @@ def test_reranker_and_nli_faithfulness():
     ])
     assert scores[0] > scores[1]
 
-    nli = NLIFaith(model_name="dummy", max_length=128, verbose=False)
+    nli = NLIFaith(model_name=cfg.nli.model, max_length=128, verbose=False)
     entail = nli.entail_prob(
         "CVE-2024-3400 is a command injection issue in PAN-OS.",
         "The vulnerability is a command injection flaw affecting PAN-OS.",

@@ -1,61 +1,74 @@
-"""Dense retrieval scoring for semantic matching.
+"""In-memory dense retrieval for tests and small chunk sets.
 
-This module ranks chunks by lexical overlap plus domain-aware boosts for queries like
-ATT&CK technique names and CVE/version identifiers. It is used for semantic retrieval
-and helps complement sparse search in the hybrid pipeline.
+The persisted benchmark path uses Chroma, but tests and small callers may pass chunks
+directly to `Retriever`. This index still uses the configured sentence-transformer
+embeddings so in-memory retrieval has the same semantic behavior as the persisted path.
 """
 
 from __future__ import annotations
 
-import re
+import math
 from typing import Any
 
+from ragc.config import load_config
+from ragc.retrieval.embeddings import TextEmbedder
 from ragc.schemas import Hit
-
-
-_TOKEN_RE = re.compile(r"[a-z0-9][a-z0-9._\-]*[a-z0-9]|[a-z0-9]")
-
-
-def _tokenize(text: str) -> list[str]:
-    return _TOKEN_RE.findall((text or "").lower())
 
 
 class DenseIndex:
     def __init__(self, cfg: Any | None = None, chunks: list[dict[str, Any]] | None = None):
-        self.cfg = cfg
+        self.cfg = cfg or load_config()
+        project_cfg = load_config()
         self.chunks = list(chunks or [])
+        self.query_prefix = str(self._cfg_get("embedding", "query_prefix", fallback_cfg=project_cfg) or "")
+        self._embedder = TextEmbedder(self._cfg_get("embedding", "model", fallback_cfg=project_cfg))
+        self._embeddings: list[list[float]] = []
+        if self.chunks:
+            self.build(self.chunks)
+
+    def _cfg_get(self, *path: str, fallback_cfg):
+        missing = object()
+        for source in (self.cfg, fallback_cfg):
+            current = source
+            for key in path:
+                if current is None:
+                    current = missing
+                    break
+                if isinstance(current, dict):
+                    current = current.get(key, missing)
+                else:
+                    current = getattr(current, key, missing)
+                if current is missing:
+                    break
+            if current is not missing:
+                return current
+        raise AttributeError("Missing required config value: " + ".".join(path))
 
     def build(self, chunks: list[dict[str, Any]]) -> None:
         self.chunks = list(chunks)
+        texts = [f"{chunk.get('header', '')} {chunk.get('text', '')}".strip() for chunk in self.chunks]
+        self._embeddings = self._embedder.embed(texts) if texts else []
 
-    def _score(self, query: str, chunk: dict[str, Any]) -> float:
-        text = f"{chunk.get('header', '')} {chunk.get('text', '')}".strip()
-        q_tokens = set(_tokenize(query))
-        c_tokens = set(_tokenize(text))
-        if not q_tokens:
+    @staticmethod
+    def _cosine(a: list[float], b: list[float]) -> float:
+        dot = sum(x * y for x, y in zip(a, b))
+        a_norm = math.sqrt(sum(x * x for x in a))
+        b_norm = math.sqrt(sum(y * y for y in b))
+        if not a_norm or not b_norm:
             return 0.0
-
-        overlap = len(q_tokens & c_tokens)
-        score = overlap / max(1, len(q_tokens))
-
-        q_lower = query.lower()
-        if ("internet-facing" in q_lower or "exploit public-facing applications" in q_lower or "attck" in q_lower):
-            if "attack" in chunk.get("source_type", "").lower() or (
-                "application" in text.lower() and "exploit" in text.lower()
-            ):
-                score += 0.8
-        if "cve-2024-3400" in q_lower and any("cve-2024-3400" in (cve or "").lower() for cve in chunk.get("cve_ids", [])):
-            score += 0.7
-        if "10.2.9-h1" in q_lower and "10.2.9-h1" in text.lower():
-            score += 0.9
-        return score
+        return dot / (a_norm * b_norm)
 
     def search(self, query: str, k: int, source_types: list[str] | None = None) -> list[Hit]:
+        if not self.chunks or not self._embeddings:
+            return []
+
+        query_text = f"{self.query_prefix}{query}" if self.query_prefix else query
+        query_embedding = self._embedder.embed([query_text])[0]
         ranked = []
-        for chunk in self.chunks:
+        for idx, chunk in enumerate(self.chunks):
             if source_types is not None and chunk.get("source_type") not in source_types:
                 continue
-            score = self._score(query, chunk)
+            score = self._cosine(query_embedding, self._embeddings[idx])
             ranked.append((chunk["chunk_id"], score))
 
         ranked.sort(key=lambda item: (-item[1], item[0]))

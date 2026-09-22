@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 
-from ragc.generation.generator import extract_citations, generate
+from ragc.generation.generator import extract_citations
 from ragc.schemas import EvidenceItem, SystemResult
 from ragc.systems.base import System
 
@@ -36,9 +36,15 @@ class S6bUtilizationSystem(System):
         return {}
 
     def run(self, qid: str, question: str) -> SystemResult:
+        retrieval_k = int(self.retrieval_param("s6b", "k", 10))
+        min_keep = int(self.retrieval_param("s6b", "min_keep", 2))
+        max_keep = int(self.retrieval_param("s6b", "max_keep", 6))
+        score_threshold = int(self.retrieval_param("s6b", "score_threshold", 3))
+        max_regen = int(self.retrieval_param("s6b", "max_regen", 2))
+
         if self.retriever is None:
-            self.budget.spend(1)
-            answer, shown = generate(self.llm, question, [], no_evidence_mode=True, tag="s6b_no_retrieval")
+            self.budget.spend_final(1)
+            answer, shown = self.generate_answer(question, [], no_evidence_mode=True, tag="s6b_no_retrieval")
             return SystemResult(
                 system=self.name,
                 qid=qid,
@@ -50,12 +56,13 @@ class S6bUtilizationSystem(System):
                 final_evidence=shown,
                 usage=self.usage(),
                 trace=self.trace,
+                errors=self.errors,
             )
 
-        hits = self.retriever.dense(question, 10)
+        hits = self.retriever.dense(question, retrieval_k)
         if not hits:
-            self.budget.spend(1)
-            answer, shown = generate(self.llm, question, [], no_evidence_mode=True, tag="s6b_no_hits")
+            self.budget.spend_final(1)
+            answer, shown = self.generate_answer(question, [], no_evidence_mode=True, tag="s6b_no_hits")
             return SystemResult(
                 system=self.name,
                 qid=qid,
@@ -67,6 +74,7 @@ class S6bUtilizationSystem(System):
                 final_evidence=shown,
                 usage=self.usage(),
                 trace=self.trace,
+                errors=self.errors,
             )
 
         try:
@@ -77,7 +85,8 @@ class S6bUtilizationSystem(System):
                 ["scores"],
             )
             eval_data = self._json(payload.get("text") if isinstance(payload, dict) else payload)
-        except Exception:
+        except Exception as exc:
+            self.record_error("s6b_eval_error", exc)
             eval_data = {"scores": []}
 
         scores = eval_data.get("scores", []) if isinstance(eval_data, dict) else []
@@ -86,11 +95,11 @@ class S6bUtilizationSystem(System):
         for hit in hits:
             chunk_id = str(hit.chunk_id)
             score = score_map.get(chunk_id, 0)
-            if score >= 3:
+            if score >= score_threshold:
                 kept.append({"chunk_id": chunk_id, "score": score})
-        if len(kept) < 2:
-            kept = [{"chunk_id": str(hit.chunk_id), "score": float(getattr(hit, "score", 0) or 0)} for hit in hits[:2]]
-        kept = sorted(kept, key=lambda item: float(item.get("score", 0.0)), reverse=True)[:6]
+        if len(kept) < min_keep:
+            kept = [{"chunk_id": str(hit.chunk_id), "score": float(getattr(hit, "score", 0) or 0)} for hit in hits[:min_keep]]
+        kept = sorted(kept, key=lambda item: float(item.get("score", 0.0)), reverse=True)[:max_keep]
 
         evidence: list[EvidenceItem] = []
         for item in kept:
@@ -110,7 +119,8 @@ class S6bUtilizationSystem(System):
                     ["notes", "conflicts", "gaps"],
                 )
                 notes_payload = self._json(payload.get("text") if isinstance(payload, dict) else payload)
-            except Exception:
+            except Exception as exc:
+                self.record_error("s6b_notes_error", exc)
                 notes_payload = {"notes": [], "conflicts": [], "gaps": []}
 
         notes = notes_payload.get("notes", []) if isinstance(notes_payload, dict) else []
@@ -128,11 +138,11 @@ class S6bUtilizationSystem(System):
             extra = "Conflicts flagged by the note-taker: " + "; ".join(str(c.get("claim", "")) for c in conflicts if isinstance(c, dict))
 
         self.budget.spend(1)
-        answer, shown = generate(self.llm, question, evidence, extra=extra, tag="s6b_draft")
+        answer, shown = self.generate_answer(question, evidence, extra=extra, tag="s6b_draft")
 
         aligned = True
         critiques = []
-        for _ in range(2):
+        for _ in range(max_regen):
             try:
                 payload = self.call_json(
                     "s6b_recon",
@@ -141,7 +151,8 @@ class S6bUtilizationSystem(System):
                     ["aligned", "critiques"],
                 )
                 recon = self._json(payload.get("text") if isinstance(payload, dict) else payload)
-            except Exception:
+            except Exception as exc:
+                self.record_error("s6b_recon_error", exc)
                 recon = {"aligned": True, "critiques": []}
 
             aligned = bool(recon.get("aligned", True))
@@ -150,8 +161,11 @@ class S6bUtilizationSystem(System):
                 break
 
             extra = extra + "\nCritiques of the previous draft: " + "; ".join(str(c) for c in critiques if c)
+            if not self.budget.can_spend(1):
+                self.trace.append({"tag": "s6b_regen_budget_exhausted", "critiques": critiques})
+                break
             self.budget.spend(1)
-            answer, shown = generate(self.llm, question, evidence, extra=extra, tag="s6b_regen")
+            answer, shown = self.generate_answer(question, evidence, extra=extra, tag="s6b_regen")
 
         return SystemResult(
             system=self.name,
@@ -164,4 +178,5 @@ class S6bUtilizationSystem(System):
             final_evidence=shown,
             usage=self.usage(),
             trace=self.trace,
+            errors=self.errors,
         )

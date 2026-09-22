@@ -18,8 +18,17 @@ def extract_citations(answer: str) -> list[str]:
     return list(dict.fromkeys(re.findall(r"\[([^\[\]]+#\d{3})\]", answer)))
 
 
-def generate(llm, question: str, items: list[EvidenceItem], *, extra: str = "", no_evidence_mode: bool = False, tag: str = "gen") -> tuple[str, list[EvidenceItem]]:
-    evidence_block, kept = build_evidence(items, max_tokens=2000)
+def _configured_context_tokens() -> int:
+    from ragc.config import load_config
+
+    cfg = load_config()
+    return int(getattr(getattr(cfg, "context", None), "max_tokens"))
+
+
+def generate(llm, question: str, items: list[EvidenceItem], *, extra: str = "", no_evidence_mode: bool = False, tag: str = "gen", max_context_tokens: int | None = None) -> tuple[str, list[EvidenceItem]]:
+    if max_context_tokens is None:
+        max_context_tokens = _configured_context_tokens()
+    evidence_block, kept = build_evidence(items, max_tokens=max_context_tokens)
 
     if no_evidence_mode:
         prompt = P_GEN_NOEVID.format(question=question)

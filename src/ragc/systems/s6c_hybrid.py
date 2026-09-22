@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 
-from ragc.generation.generator import extract_citations, generate
+from ragc.generation.generator import extract_citations
 from ragc.schemas import EvidenceItem, SystemResult
 from ragc.systems.base import System
 
@@ -62,7 +62,8 @@ class S6cHybridSystem(System):
                     ["sub_questions"],
                 )
             data = self._json(payload.get("text") if isinstance(payload, dict) else payload)
-        except Exception:
+        except Exception as exc:
+            self.record_error("s6c_plan_error", exc)
             data = {}
 
         items = data.get("sub_questions", []) if isinstance(data, dict) else []
@@ -70,7 +71,11 @@ class S6cHybridSystem(System):
             return [{"id": "s1", "question": question, "sources": []}]
 
         cleaned = []
-        for idx, item in enumerate(items[:4], start=1):
+        max_subq = int(self.retrieval_param("s6c", "max_subq", 4))
+        max_sources = int(self.retrieval_param("s6c", "max_sources_per_subq", 2))
+        valid_sources = {"nvd", "kev", "vendor", "threatintel", "attack"}
+
+        for idx, item in enumerate(items[:max_subq], start=1):
             if not isinstance(item, dict):
                 continue
             q = str(item.get("question") or question).strip()
@@ -78,9 +83,9 @@ class S6cHybridSystem(System):
                 continue
             sources = item.get("sources") if isinstance(item.get("sources"), list) else []
             if self.use_routing:
-                sources = [str(src).strip() for src in sources if str(src).strip()]
-                if len(sources) > 2:
-                    sources = sources[:2]
+                sources = [str(src).strip() for src in sources if str(src).strip() in valid_sources]
+                if len(sources) > max_sources:
+                    sources = sources[:max_sources]
             else:
                 sources = []
             cleaned.append({"id": str(item.get("id") or f"s{idx}"), "question": q, "sources": sources})
@@ -106,15 +111,17 @@ class S6cHybridSystem(System):
                 grouped[sid] = []
                 continue
 
-            hits = self.retriever.hybrid(sub_question, 20, 20, 15, source_types=sources if self.use_routing and sources else None)
+            dense_k = int(self.retrieval_param("s6c", "dense", 20))
+            bm25_k = int(self.retrieval_param("s6c", "bm25", 20))
+            candidate_k = int(self.retrieval_param("s6c", "k_candidates", 15))
+            keep_per_subq = int(self.retrieval_param("s6c", "keep_per_subq", 3))
+
+            hits = self.retriever.hybrid(sub_question, dense_k, bm25_k, candidate_k, source_types=sources if self.use_routing and sources else None)
             if self.use_routing and sources and not hits:
-                hits = self.retriever.hybrid(sub_question, 20, 20, 15, source_types=None)
+                hits = self.retriever.hybrid(sub_question, dense_k, bm25_k, candidate_k, source_types=None)
                 routing.append((sid, tuple(sources), "route_fallback"))
             else:
                 routing.append((sid, tuple(sources), "route" if self.use_routing else "unrestricted"))
-
-            if self.reranker is None:
-                raise RuntimeError("S6c requires a configured reranker")
 
             scored_hits = []
             for hit in hits:
@@ -122,10 +129,15 @@ class S6cHybridSystem(System):
                 if not chunk:
                     continue
                 passage = (chunk.get("header", "") + "\n" + chunk.get("text", "")).strip()
-                score = self.reranker.score([(sub_question, passage)])[0]
+                if self.reranker is None:
+                    if not any(item.get("tag") == "s6c_missing_reranker" for item in self.trace):
+                        self.record_error("s6c_missing_reranker", "using retrieval scores because no reranker was provided")
+                    score = float(getattr(hit, "score", 0.0) or 0.0)
+                else:
+                    score = self.reranker.score([(sub_question, passage)])[0]
                 scored_hits.append((hit, float(score), chunk))
 
-            for hit, score, chunk in sorted(scored_hits, key=lambda item: (-item[1], item[0].chunk_id))[:3]:
+            for hit, score, chunk in sorted(scored_hits, key=lambda item: (-item[1], item[0].chunk_id))[:keep_per_subq]:
                 chunk_id = str(hit.chunk_id)
                 if chunk_id in seen:
                     continue
@@ -145,8 +157,12 @@ class S6cHybridSystem(System):
         state_notes: list[dict] = []
         state_conflicts: list[dict] = []
         seen: set[str] = set()
+        max_rounds = int(self.retrieval_param("s6c", "max_rounds", 3))
+        max_gap_subq = int(self.retrieval_param("s6c", "max_gap_subq", 2))
+        max_sources = int(self.retrieval_param("s6c", "max_sources_per_subq", 2))
+        valid_sources = {"nvd", "kev", "vendor", "threatintel", "attack"}
 
-        for round_idx in range(3):
+        for round_idx in range(max_rounds):
             grouped, routing, seen = self._collect_round(sub_questions, seen, question=question)
             if not any(grouped.values()):
                 break
@@ -168,7 +184,8 @@ class S6cHybridSystem(System):
                     ["notes", "conflicts"],
                 )
                 refine = self._json(payload.get("text") if isinstance(payload, dict) else payload)
-            except Exception:
+            except Exception as exc:
+                self.record_error("s6c_refine_error", exc)
                 refine = {"notes": [], "conflicts": []}
 
             new_notes = refine.get("notes", []) if isinstance(refine, dict) else []
@@ -183,7 +200,7 @@ class S6cHybridSystem(System):
                     if isinstance(conflict, dict):
                         state_conflicts.append(conflict)
 
-            if round_idx >= 2:
+            if round_idx >= max_rounds - 1:
                 break
 
             try:
@@ -194,7 +211,8 @@ class S6cHybridSystem(System):
                     ["sufficient", "gaps"],
                 )
                 decision = self._json(payload.get("text") if isinstance(payload, dict) else payload)
-            except Exception:
+            except Exception as exc:
+                self.record_error("s6c_decide_error", exc)
                 decision = {"sufficient": True, "gaps": []}
 
             if bool(decision.get("sufficient", False)):
@@ -205,7 +223,7 @@ class S6cHybridSystem(System):
                 break
 
             sub_questions = []
-            for gap in gaps[:2]:
+            for gap in gaps[:max_gap_subq]:
                 if not isinstance(gap, dict):
                     continue
                 gap_question = str(gap.get("question") or "").strip()
@@ -213,7 +231,7 @@ class S6cHybridSystem(System):
                     continue
                 planned_sources = list(gap.get("sources") or []) if self.use_routing else []
                 if self.use_routing:
-                    planned_sources = [str(src).strip() for src in planned_sources if str(src).strip()][:2]
+                    planned_sources = [str(src).strip() for src in planned_sources if str(src).strip() in valid_sources][:max_sources]
                 sub_questions.append({"id": f"g{len(sub_questions)+1}", "question": gap_question, "sources": planned_sources})
 
             if not sub_questions:
@@ -246,8 +264,8 @@ class S6cHybridSystem(System):
         if state_conflicts:
             extra = "Conflicts flagged during refinement: " + "; ".join(str(conflict.get("claim", "")) for conflict in state_conflicts if isinstance(conflict, dict) and str(conflict.get("claim", "")).strip())
 
-        self.budget.spend(1)
-        answer, shown = generate(self.llm, question, evidence, extra=extra, tag="s6c_final")
+        self.budget.spend_final(1)
+        answer, shown = self.generate_answer(question, evidence, extra=extra, tag="s6c_final")
         abstained = answer.strip().upper().startswith("INSUFFICIENT_EVIDENCE")
         return SystemResult(
             system=self.name,
@@ -260,4 +278,5 @@ class S6cHybridSystem(System):
             final_evidence=shown,
             usage=self.usage(),
             trace=self.trace,
+            errors=self.errors,
         )

@@ -8,11 +8,14 @@ LLM calls that enforce the project-wide resource limits.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from functools import lru_cache
 from types import SimpleNamespace
 from time import perf_counter
 
+from ragc.config import load_config
+from ragc.generation.generator import generate
 from ragc.llm.base import BaseLLMClient
-from ragc.schemas import SystemResult
+from ragc.schemas import EvidenceItem, SystemResult
 
 
 class BudgetExceeded(RuntimeError):
@@ -36,6 +39,17 @@ class CallBudget:
         self.used += n
         return self.used
 
+    def spend_final(self, n: int = 1):
+        if (self.used + n) > self.max_calls:
+            raise BudgetExceeded(f"Final call would exceed max_calls={self.max_calls}")
+        self.used += n
+        return self.used
+
+
+@lru_cache(maxsize=1)
+def _project_config():
+    return load_config()
+
 
 class System(ABC):
     """Common base class for all system-level agent implementations."""
@@ -53,6 +67,7 @@ class System(ABC):
         self.reranker = reranker
         self.budget = CallBudget(max_calls=max_calls, reserve_final=reserve_final)
         self.trace: list[dict] = []
+        self.errors: list[str] = []
         self._started_at = perf_counter()
         self._llm_results: list[object] = []
         if self.llm is not None:
@@ -60,6 +75,54 @@ class System(ABC):
                 setattr(self.llm, "_ragc_result_sink", self._record_llm_result)
             except Exception:
                 pass
+
+    def cfg_get(self, *path: str, default=None):
+        """Read a nested config value from namespaces or dicts."""
+        value = self._cfg_get_from(self.cfg, *path)
+        if value is not None:
+            return value
+        value = self._cfg_get_from(_project_config(), *path)
+        return default if value is None else value
+
+    @staticmethod
+    def _cfg_get_from(source, *path: str):
+        missing = object()
+        current = source
+        for key in path:
+            if current is None:
+                return None
+            if isinstance(current, dict):
+                current = current.get(key, missing)
+            else:
+                current = getattr(current, key, missing)
+            if current is missing:
+                return None
+        return current
+
+    def retrieval_param(self, section: str, key: str, default):
+        return self.cfg_get("retrieval", section, key, default=default)
+
+    def post_param(self, key: str, default):
+        return self.cfg_get("post", key, default=default)
+
+    def context_max_tokens(self) -> int:
+        return int(self.cfg_get("context", "max_tokens"))
+
+    def generate_answer(self, question: str, items: list[EvidenceItem], *, extra: str = "", no_evidence_mode: bool = False, tag: str = "gen"):
+        return generate(
+            self.llm,
+            question,
+            items,
+            extra=extra,
+            no_evidence_mode=no_evidence_mode,
+            tag=tag,
+            max_context_tokens=self.context_max_tokens(),
+        )
+
+    def record_error(self, tag: str, exc: BaseException | str) -> None:
+        message = str(exc)
+        self.errors.append(f"{tag}: {message}")
+        self.trace.append({"tag": tag, "error": message})
 
     def _record_llm_result(self, result) -> None:
         self._llm_results.append(result)

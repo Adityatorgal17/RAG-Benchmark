@@ -8,6 +8,7 @@ JSON-serializable payload that can be displayed in a lightweight dashboard.
 from __future__ import annotations
 
 import json
+import os
 from typing import Any
 
 from ragc.config import load_config
@@ -19,8 +20,17 @@ from ragc.systems.registry import get_system_factory
 
 _RERANKER_SYSTEMS = {"S2", "S3", "S6c", "A1", "A2a", "A2b"}
 _UI_LLM = None
+_UI_LLM_MODE = "unknown"
 _UI_RETRIEVER: Retriever | None = None
 _UI_RERANKER: Reranker | None = None
+
+
+def _has_provider_key(provider: str) -> bool:
+    prefix = provider.upper()
+    return any(
+        os.getenv(name)
+        for name in [f"{prefix}_API_KEY", *[f"{prefix}_API_KEY{i}" for i in range(1, 10)]]
+    )
 
 
 def _get_retriever(cfg):
@@ -31,7 +41,7 @@ def _get_retriever(cfg):
 
 
 def _get_llm(cfg):
-    global _UI_LLM
+    global _UI_LLM, _UI_LLM_MODE
     if _UI_LLM is None:
         try:
             from dotenv import load_dotenv
@@ -39,8 +49,29 @@ def _get_llm(cfg):
             load_dotenv()
         except ImportError:
             pass
-        _UI_LLM = build_main_llm(cfg, fake=False)
+        force_fake = os.getenv("RAGC_UI_FAKE_LLM", "").strip().lower() in {"1", "true", "yes"}
+        force_real = os.getenv("RAGC_UI_REAL_LLM", "").strip().lower() in {"1", "true", "yes"}
+        main_provider = str(getattr(getattr(cfg, "main_llm", None), "provider", "groq")).strip().lower()
+        use_real = force_real or (_has_provider_key(main_provider) and not force_fake)
+        _UI_LLM = build_main_llm(cfg, fake=not use_real)
+        _UI_LLM_MODE = "real" if use_real else "fake"
     return _UI_LLM
+
+
+def get_ui_runtime_status() -> dict[str, Any]:
+    """Return runtime details shown by the UI without exposing secrets."""
+    cfg = load_config()
+    llm = _get_llm(cfg)
+    return {
+        "backend": "real",
+        "retrieval": "real",
+        "llm_mode": _UI_LLM_MODE,
+        "provider": getattr(llm, "provider", "fake"),
+        "model": getattr(llm, "model", "FakeLLM"),
+        "chunks_path": str(getattr(cfg.paths, "chunks", "")),
+        "chroma_path": str(getattr(cfg.paths, "chroma", "")),
+        "bm25_path": str(getattr(cfg.paths, "bm25", "")),
+    }
 
 
 def _get_reranker(cfg, system_id: str):
@@ -117,6 +148,7 @@ def build_ui_response(system_id: str, question: str) -> dict[str, Any]:
         "system": result.system,
         "question": result.question,
         "answer": result.answer,
+        "runtime": get_ui_runtime_status(),
         "abstained": result.abstained,
         "cited_ids": result.cited_ids,
         "candidate_ids": result.candidate_ids,

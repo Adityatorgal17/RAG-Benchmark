@@ -7,7 +7,7 @@ fusion of the ranked lists, and one final generation pass.
 
 from __future__ import annotations
 
-from ragc.generation.generator import extract_citations, generate
+from ragc.generation.generator import extract_citations
 from ragc.retrieval.hybrid import rrf
 from ragc.schemas import EvidenceItem, SystemResult
 from ragc.systems.base import System
@@ -40,8 +40,15 @@ class S1PreSystem(System):
         rewrites = parsed.get("rewrites", []) if isinstance(parsed, dict) else []
         if not isinstance(rewrites, list):
             rewrites = []
+        max_rewrites = int(self.retrieval_param("s1", "max_rewrites", 3))
+        per_query_dense = int(self.retrieval_param("s1", "per_query_dense", 10))
+        per_query_bm25 = int(self.retrieval_param("s1", "per_query_bm25", 10))
+        hyde_dense = int(self.retrieval_param("s1", "hyde_dense", 10))
+        final_k = int(self.retrieval_param("s1", "final_k", 5))
+        rrf_k = int(self.cfg_get("retrieval", "rrf_k", default=60))
+
         rewrites = [str(r).strip() for r in rewrites if str(r).strip()]
-        rewrites = rewrites[:3]
+        rewrites = rewrites[:max_rewrites]
         hyde = parsed.get("hyde", "") if isinstance(parsed, dict) else ""
         hyde = str(hyde).strip()
 
@@ -51,20 +58,20 @@ class S1PreSystem(System):
 
         if self.retriever is not None:
             for q in queries:
-                dense_hits = self.retriever.dense(q, 10)
-                bm25_hits = self.retriever.bm25(q, 10)
+                dense_hits = self.retriever.dense(q, per_query_dense)
+                bm25_hits = self.retriever.bm25(q, per_query_bm25)
                 all_lists.append([hit.chunk_id for hit in dense_hits])
                 all_lists.append([hit.chunk_id for hit in bm25_hits])
                 candidate_ids.extend(hit.chunk_id for hit in dense_hits)
                 candidate_ids.extend(hit.chunk_id for hit in bm25_hits)
 
             if hyde:
-                hyde_hits = self.retriever.passage(hyde, 10) if hasattr(self.retriever, "passage") else self.retriever.dense(hyde, 10)
+                hyde_hits = self.retriever.passage(hyde, hyde_dense) if hasattr(self.retriever, "passage") else self.retriever.dense(hyde, hyde_dense)
                 all_lists.append([hit.chunk_id for hit in hyde_hits])
                 candidate_ids.extend(hit.chunk_id for hit in hyde_hits)
 
-        fused = rrf(all_lists, k=60) if all_lists else []
-        ordered_ids = list(dict.fromkeys(fused))[:5]
+        fused = rrf(all_lists, k=rrf_k) if all_lists else []
+        ordered_ids = list(dict.fromkeys(fused))[:final_k]
 
         final_evidence: list[EvidenceItem] = []
         for chunk_id in ordered_ids:
@@ -82,8 +89,8 @@ class S1PreSystem(System):
                 )
             )
 
-        self.budget.spend(1)
-        answer, shown = generate(self.llm, question, final_evidence, tag="s1")
+        self.budget.spend_final(1)
+        answer, shown = self.generate_answer(question, final_evidence, tag="s1")
         abstained = answer.strip().upper().startswith("INSUFFICIENT_EVIDENCE")
         return SystemResult(
             system=self.name,
@@ -96,4 +103,5 @@ class S1PreSystem(System):
             final_evidence=shown,
             usage=self.usage(),
             trace=self.trace,
+            errors=self.errors,
         )

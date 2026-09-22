@@ -206,6 +206,42 @@ class GroqClient(ProviderLLM):
         )
 
 
+def _build_provider_llm(role_cfg, *, role_name: str, default_provider: str, default_model: str, default_rpm: int, default_max_tokens: int, cache: LLMCache):
+    provider = str(getattr(role_cfg, "provider", default_provider)).strip().lower()
+    model = str(getattr(role_cfg, "model", default_model))
+    temperature = float(getattr(role_cfg, "temperature", 0))
+    rpm = int(getattr(role_cfg, "rpm", default_rpm))
+    max_tokens = int(getattr(role_cfg, "max_output_tokens", getattr(role_cfg, "max_output_tokens_answer", default_max_tokens)))
+
+    if provider == "groq":
+        pool = KeyPool.from_env("groq")
+        if not pool.keys:
+            raise QuotaExhausted(f"No Groq API key found for {role_name}. Set GROQ_API_KEY or GROQ_API_KEY1, or pass --fake for a dry run.")
+        return GroqClient(
+            model=model,
+            temperature=temperature,
+            cache=cache,
+            key_pool=pool,
+            rpm=rpm,
+            default_max_tokens=max_tokens,
+        )
+
+    if provider == "gemini":
+        pool = KeyPool.from_env("gemini")
+        if not pool.keys:
+            raise QuotaExhausted(f"No Gemini API key found for {role_name}. Set GEMINI_API_KEY or GEMINI_API_KEY1, or pass --fake for a dry run.")
+        return GeminiClient(
+            model=model,
+            temperature=temperature,
+            cache=cache,
+            key_pool=pool,
+            rpm=rpm,
+            default_max_tokens=max_tokens,
+        )
+
+    raise ValueError(f"Unsupported {role_name} provider: {provider!r}")
+
+
 def build_main_llm(cfg, *, fake: bool = False):
     if fake:
         from ragc.llm.fake import FakeLLM
@@ -213,17 +249,7 @@ def build_main_llm(cfg, *, fake: bool = False):
         return FakeLLM(cache=LLMCache(getattr(getattr(cfg, "paths", None), "cache", "cache/llm_cache.sqlite")))
     main = getattr(cfg, "main_llm")
     cache = LLMCache(getattr(getattr(cfg, "paths", None), "cache", "cache/llm_cache.sqlite"))
-    pool = KeyPool.from_env("gemini")
-    if not pool.keys:
-        raise QuotaExhausted("No Gemini API key found. Set GEMINI_API_KEY or GEMINI_API_KEY1, or pass --fake for a dry run.")
-    return GeminiClient(
-        model=getattr(main, "model", "gemini-3.5-flash-lite"),
-        temperature=float(getattr(main, "temperature", 0)),
-        cache=cache,
-        key_pool=pool,
-        rpm=int(getattr(main, "rpm", 10)),
-        default_max_tokens=int(getattr(main, "max_output_tokens_answer", 400)),
-    )
+    return _build_provider_llm(main, role_name="main_llm", default_provider="groq", default_model="openai/gpt-oss-20b", default_rpm=25, default_max_tokens=400, cache=cache)
 
 
 def build_judge_llm(cfg, *, fake: bool = False):
@@ -233,14 +259,4 @@ def build_judge_llm(cfg, *, fake: bool = False):
         return FakeLLM(cache=LLMCache(getattr(getattr(cfg, "paths", None), "cache", "cache/llm_cache.sqlite")))
     judge = getattr(cfg, "judge_llm")
     cache = LLMCache(getattr(getattr(cfg, "paths", None), "cache", "cache/llm_cache.sqlite"))
-    pool = KeyPool.from_env("groq")
-    if not pool.keys:
-        raise QuotaExhausted("No Groq API key found. Set GROQ_API_KEY or GROQ_API_KEY1, or pass --fake for a dry run.")
-    return GroqClient(
-        model=getattr(judge, "model", "openai/gpt-oss-20b"),
-        temperature=float(getattr(judge, "temperature", 0)),
-        cache=cache,
-        key_pool=pool,
-        rpm=int(getattr(judge, "rpm", 25)),
-        default_max_tokens=int(getattr(judge, "max_output_tokens", 400)),
-    )
+    return _build_provider_llm(judge, role_name="judge_llm", default_provider="gemini", default_model="gemini-3.5-flash-lite", default_rpm=10, default_max_tokens=400, cache=cache)

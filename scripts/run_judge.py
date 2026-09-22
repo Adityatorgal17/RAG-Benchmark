@@ -128,7 +128,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--split", default="test")
     parser.add_argument("--qids", default=None)
     parser.add_argument("--max-tokens", type=int, default=90000)
-    parser.add_argument("--fake", action="store_true", help="Use FakeLLM instead of Groq for a dry run.")
+    parser.add_argument("--fake", action="store_true", help="Use FakeLLM instead of the configured judge provider for a dry run.")
     return parser
 
 

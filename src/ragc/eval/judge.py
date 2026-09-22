@@ -3,7 +3,7 @@
 This module follows the benchmark’s fixed prompt contract: it sends one gold-to-candidate
 comparison per question and validates that the provider responded with the required JSON
 shape. The implementation is deliberately lightweight and deterministic so it can be
-checked with FakeLLM before real Groq calls are used.
+checked with FakeLLM before real judge-provider calls are used.
 """
 
 from __future__ import annotations

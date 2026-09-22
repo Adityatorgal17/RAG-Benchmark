@@ -7,7 +7,7 @@ LLM generation pass. The ablation variants A2a and A2b reuse the same logic with
 
 from __future__ import annotations
 
-from ragc.generation.generator import extract_citations, generate
+from ragc.generation.generator import extract_citations
 from ragc.schemas import EvidenceItem, SystemResult
 from ragc.systems.base import System
 from ragc.systems.post_refine import post_refine
@@ -25,11 +25,14 @@ class S2PostSystem(System):
         if self.retriever is None:
             hits = []
         else:
-            hits = self.retriever.hybrid(question, 30, 30, 30)
+            dense_k = int(self.retrieval_param("s2", "dense", 30))
+            bm25_k = int(self.retrieval_param("s2", "bm25", 30))
+            candidates_k = int(self.retrieval_param("s2", "candidates", 30))
+            hits = self.retriever.hybrid(question, dense_k, bm25_k, candidates_k)
         candidates = [hit.chunk_id for hit in hits]
         items = post_refine(self.reranker, self.retriever, [question], candidates, None, self.cfg, do_filter=self.do_filter, do_compress=self.do_compress)
-        self.budget.spend(1)
-        answer, shown = generate(self.llm, question, items, tag="s2")
+        self.budget.spend_final(1)
+        answer, shown = self.generate_answer(question, items, tag="s2")
         abstained = answer.strip().upper().startswith("INSUFFICIENT_EVIDENCE")
         return SystemResult(
             system=self.name,
@@ -42,6 +45,7 @@ class S2PostSystem(System):
             final_evidence=shown,
             usage=self.usage(),
             trace=self.trace,
+            errors=self.errors,
         )
 
 

@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 import re
 
-from ragc.generation.generator import extract_citations, generate
+from ragc.generation.generator import extract_citations
 from ragc.schemas import EvidenceItem, SystemResult
 from ragc.systems.base import System
 
@@ -50,12 +50,13 @@ class S6aAcquisitionSystem(System):
                     ["retrieve", "complexity"],
                 )
                 decision = self._parse_json_object(payload.get("text") if isinstance(payload, dict) else payload)
-            except Exception:
+            except Exception as exc:
+                self.record_error("s6a_decision_error", exc)
                 decision = {"retrieve": True, "complexity": "simple"}
 
         if not bool(decision.get("retrieve", True)):
-            self.budget.spend(1)
-            answer, shown = generate(self.llm, question, [], no_evidence_mode=True, tag="s6a_no_retrieve")
+            self.budget.spend_final(1)
+            answer, shown = self.generate_answer(question, [], no_evidence_mode=True, tag="s6a_no_retrieve")
             return SystemResult(
                 system=self.name,
                 qid=qid,
@@ -67,10 +68,20 @@ class S6aAcquisitionSystem(System):
                 final_evidence=shown,
                 usage=self.usage(),
                 trace=self.trace,
+                errors=self.errors,
             )
 
         complexity = str(decision.get("complexity", "")).strip().lower()
-        max_rounds = {"simple": 1, "multi_fact": 2, "multi_hop": 3}.get(complexity, 2)
+        configured_max_rounds = int(self.retrieval_param("s6a", "max_rounds", 3))
+        simple_rounds = int(self.retrieval_param("s6a", "simple_rounds", 1))
+        multi_fact_rounds = int(self.retrieval_param("s6a", "multi_fact_rounds", 2))
+        multi_hop_rounds = int(self.retrieval_param("s6a", "multi_hop_rounds", configured_max_rounds))
+        max_rounds = {"simple": simple_rounds, "multi_fact": multi_fact_rounds, "multi_hop": multi_hop_rounds}.get(complexity, multi_fact_rounds)
+        max_rounds = max(1, min(max_rounds, configured_max_rounds))
+        dense_k = int(self.retrieval_param("s6a", "dense", 30))
+        bm25_k = int(self.retrieval_param("s6a", "bm25", 30))
+        search_k = int(self.retrieval_param("s6a", "k", 5))
+        final_k = int(self.retrieval_param("s6a", "final_k", 6))
 
         queries: list[str] = []
         evidence_map: dict[str, dict] = {}
@@ -85,7 +96,8 @@ class S6aAcquisitionSystem(System):
                     ["query"],
                 )
                 step = self._parse_json_object(payload.get("text") if isinstance(payload, dict) else payload)
-            except Exception:
+            except Exception as exc:
+                self.record_error("s6a_query_error", exc)
                 break
 
             query = str(step.get("query", "")).strip()
@@ -101,7 +113,7 @@ class S6aAcquisitionSystem(System):
             if self.retriever is None:
                 break
 
-            hits = self.retriever.hybrid(query, 30, 30, 5)
+            hits = self.retriever.hybrid(query, dense_k, bm25_k, search_k)
             for hit in hits:
                 chunk = self.retriever.get_chunk(hit.chunk_id)
                 if not chunk:
@@ -124,14 +136,15 @@ class S6aAcquisitionSystem(System):
                 sufficiency_payload = self.call_json(
                     "s6a_suff",
                     "You are the Sufficiency agent. Judge whether the retrieved evidence is enough to answer the question completely.",
-                    "Question: " + question + "\nEvidence (top 6 by retrieval score):\n" + "\n\n".join(
+                    "Question: " + question + f"\nEvidence (top {final_k} by retrieval score):\n" + "\n\n".join(
                         f"{item['chunk_id']}: {item['header']}\n{(item['text'] or '')[:600]}"
-                        for item in sorted(evidence_map.values(), key=lambda d: float(d.get('score', 0.0)), reverse=True)[:6]
+                        for item in sorted(evidence_map.values(), key=lambda d: float(d.get('score', 0.0)), reverse=True)[:final_k]
                     ) + "\nReturn JSON with sufficient boolean and missing note when insufficient.",
                     ["sufficient", "missing"],
                 )
                 sufficiency = self._parse_json_object(sufficiency_payload.get("text") if isinstance(sufficiency_payload, dict) else sufficiency_payload)
-            except Exception:
+            except Exception as exc:
+                self.record_error("s6a_sufficiency_error", exc)
                 sufficiency = {"sufficient": True, "missing": ""}
 
             if bool(sufficiency.get("sufficient", False)):
@@ -139,7 +152,7 @@ class S6aAcquisitionSystem(System):
 
             missing = str(sufficiency.get("missing", "")).strip()
 
-        ranked = sorted(evidence_map.values(), key=lambda item: float(item.get("score", 0.0)), reverse=True)[:6]
+        ranked = sorted(evidence_map.values(), key=lambda item: float(item.get("score", 0.0)), reverse=True)[:final_k]
         final_evidence = [
             EvidenceItem(
                 chunk_id=str(item["chunk_id"]),
@@ -151,8 +164,8 @@ class S6aAcquisitionSystem(System):
         ]
 
         if not final_evidence:
-            self.budget.spend(1)
-            answer, shown = generate(self.llm, question, [], no_evidence_mode=True, tag="s6a_no_evidence")
+            self.budget.spend_final(1)
+            answer, shown = self.generate_answer(question, [], no_evidence_mode=True, tag="s6a_no_evidence")
             return SystemResult(
                 system=self.name,
                 qid=qid,
@@ -164,10 +177,11 @@ class S6aAcquisitionSystem(System):
                 final_evidence=shown,
                 usage=self.usage(),
                 trace=self.trace,
+                errors=self.errors,
             )
 
-        self.budget.spend(1)
-        answer, shown = generate(self.llm, question, final_evidence, tag="s6a_final")
+        self.budget.spend_final(1)
+        answer, shown = self.generate_answer(question, final_evidence, tag="s6a_final")
         abstained = answer.strip().upper().startswith("INSUFFICIENT_EVIDENCE")
         return SystemResult(
             system=self.name,
@@ -176,8 +190,9 @@ class S6aAcquisitionSystem(System):
             answer=answer,
             abstained=abstained,
             cited_ids=extract_citations(answer),
-            candidate_ids=[item.chunk_id for item in final_evidence],
+            candidate_ids=list(evidence_map.keys()),
             final_evidence=shown,
             usage=self.usage(),
             trace=self.trace,
+            errors=self.errors,
         )

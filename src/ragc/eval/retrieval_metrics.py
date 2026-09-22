@@ -1,7 +1,7 @@
 """Local retrieval and faithfulness metrics for the benchmark.
 
 These metrics are deterministic and do not depend on an external judge. They support
-pre-flight checks and local evaluation before the Groq pointwise judge is used.
+pre-flight checks and local evaluation before the configured pointwise judge is used.
 """
 
 from __future__ import annotations

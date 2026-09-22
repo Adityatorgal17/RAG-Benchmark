@@ -12,7 +12,9 @@ import pickle
 from pathlib import Path
 from typing import Any
 
+from ragc.config import load_config
 from ragc.retrieval.bm25 import BM25Index
+from ragc.retrieval.dense import DenseIndex
 from ragc.retrieval.embeddings import TextEmbedder
 from ragc.schemas import Hit
 
@@ -23,20 +25,46 @@ except ImportError as exc:  # pragma: no cover - dependency should exist in proj
 
 
 class Retriever:
-    def __init__(self, cfg: Any, *, chunks_path: str | Path | None = None):
-        self.cfg = cfg
-        paths = getattr(cfg, "paths", type("P", (), {"chunks": "data/processed/chunks.jsonl", "chroma": "data/index/chroma", "bm25": "data/index/bm25.pkl"})())
-        self.chunks_path = Path(chunks_path) if chunks_path is not None else Path(getattr(paths, "chunks", "data/processed/chunks.jsonl"))
-        self.chroma_path = Path(getattr(paths, "chroma", "data/index/chroma"))
-        self.bm25_path = Path(getattr(paths, "bm25", "data/index/bm25.pkl"))
-        embedding_cfg = getattr(cfg, "embedding", None)
-        self._embedder = TextEmbedder(getattr(embedding_cfg, "model", "BAAI/bge-small-en-v1.5"))
-        self._chunks = self._load_chunks(self.chunks_path)
+    def __init__(self, cfg: Any, *, chunks_path: str | Path | None = None, chunks: list[dict[str, Any]] | None = None):
+        self.cfg = cfg or load_config()
+        project_cfg = load_config()
+        self.chunks_path = Path(chunks_path) if chunks_path is not None else Path(self._cfg_get("paths", "chunks", fallback_cfg=project_cfg))
+        self.chroma_path = Path(self._cfg_get("paths", "chroma", fallback_cfg=project_cfg))
+        self.bm25_path = Path(self._cfg_get("paths", "bm25", fallback_cfg=project_cfg))
+        self.rrf_k = int(self._cfg_get("retrieval", "rrf_k", fallback_cfg=project_cfg))
+        self.dense_overfetch_multiplier = int(self._cfg_get("retrieval", "dense_overfetch_multiplier", fallback_cfg=project_cfg))
+        self._embedder = TextEmbedder(self._cfg_get("embedding", "model", fallback_cfg=project_cfg))
+        self._chunks = list(chunks) if chunks is not None else self._load_chunks(self.chunks_path)
         if not self._chunks:
             raise FileNotFoundError(f"Missing or empty chunks file: {self.chunks_path}. Run python scripts/build_all.py first.")
         self._chunk_lookup = {chunk["chunk_id"]: chunk for chunk in self._chunks}
-        self._bm25_index = self._load_bm25_index(self.bm25_path)
-        self._chroma_collection = self._load_chroma_collection(self.chroma_path)
+        self._memory_dense_index: DenseIndex | None = None
+        self._memory_mode = chunks is not None
+        if self._memory_mode:
+            self._bm25_index = BM25Index(cfg, self._chunks)
+            self._memory_dense_index = DenseIndex(cfg, self._chunks)
+            self._chroma_collection = None
+        else:
+            self._bm25_index = self._load_bm25_index(self.bm25_path)
+            self._chroma_collection = self._load_chroma_collection(self.chroma_path)
+
+    def _cfg_get(self, *path: str, fallback_cfg):
+        missing = object()
+        for source in (self.cfg, fallback_cfg):
+            current = source
+            for key in path:
+                if current is None:
+                    current = missing
+                    break
+                if isinstance(current, dict):
+                    current = current.get(key, missing)
+                else:
+                    current = getattr(current, key, missing)
+                if current is missing:
+                    break
+            if current is not missing:
+                return current
+        raise AttributeError("Missing required config value: " + ".".join(path))
 
     def _load_chunks(self, path: str | Path) -> list[dict[str, Any]]:
         path = Path(path)
@@ -77,7 +105,7 @@ class Retriever:
             raise RuntimeError("Chroma collection 'cve_corpus' is empty")
         result = self._chroma_collection.query(
             query_embeddings=[query_embedding],
-            n_results=min(max(k * 5, k), count),
+            n_results=min(max(k * self.dense_overfetch_multiplier, k), count),
             include=["metadatas", "distances"],
         )
 
@@ -96,6 +124,8 @@ class Retriever:
         return hits
 
     def dense(self, query: str, k: int, source_types: list[str] | None = None) -> list[Hit]:
+        if self._memory_dense_index is not None:
+            return self._memory_dense_index.search(query, k, source_types)
         return self._dense_from_chroma(query, k, source_types)
 
     def bm25(self, query: str, k: int, source_types: list[str] | None = None) -> list[Hit]:
@@ -107,9 +137,9 @@ class Retriever:
 
         score_map: dict[str, float] = {}
         for rank, hit in enumerate(dense_hits, start=1):
-            score_map[hit.chunk_id] = score_map.get(hit.chunk_id, 0.0) + 1.0 / (60 + rank)
+            score_map[hit.chunk_id] = score_map.get(hit.chunk_id, 0.0) + 1.0 / (self.rrf_k + rank)
         for rank, hit in enumerate(bm25_hits, start=1):
-            score_map[hit.chunk_id] = score_map.get(hit.chunk_id, 0.0) + 1.0 / (60 + rank)
+            score_map[hit.chunk_id] = score_map.get(hit.chunk_id, 0.0) + 1.0 / (self.rrf_k + rank)
 
         ordered = sorted(score_map.items(), key=lambda kv: (-kv[1], kv[0]))[:k_out]
         return [Hit(chunk_id=chunk_id, score=float(score), rank=rank, via="hybrid") for rank, (chunk_id, score) in enumerate(ordered, start=1)]

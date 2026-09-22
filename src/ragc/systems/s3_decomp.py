@@ -7,7 +7,7 @@ before a final answer generation call.
 
 from __future__ import annotations
 
-from ragc.generation.generator import extract_citations, generate
+from ragc.generation.generator import extract_citations
 from ragc.schemas import EvidenceItem, SystemResult
 from ragc.systems.base import System
 from ragc.systems.post_refine import post_refine
@@ -40,8 +40,13 @@ class S3DecompSystem(System):
         sub_queries = parsed.get("sub_queries", []) if isinstance(parsed, dict) else []
         if not isinstance(sub_queries, list):
             sub_queries = []
+        max_subqueries = int(self.retrieval_param("s3", "max_subqueries", 3))
+        dense_k = int(self.retrieval_param("s3", "dense", 20))
+        bm25_k = int(self.retrieval_param("s3", "bm25", 20))
+        per_query_k = int(self.retrieval_param("s3", "per_query_k", 10))
+
         sub_queries = [str(q).strip() for q in sub_queries if str(q).strip()]
-        sub_queries = sub_queries[:3]
+        sub_queries = sub_queries[:max_subqueries]
         if not sub_queries:
             sub_queries = [question]
 
@@ -58,7 +63,7 @@ class S3DecompSystem(System):
         candidates: list[str] = []
         if self.retriever is not None:
             for q in queries:
-                hits = self.retriever.hybrid(q, 20, 20, 10)
+                hits = self.retriever.hybrid(q, dense_k, bm25_k, per_query_k)
                 for hit in hits:
                     chunk_id = hit.chunk_id
                     query_of.setdefault(chunk_id, [])
@@ -69,8 +74,8 @@ class S3DecompSystem(System):
 
         items = post_refine(self.reranker, self.retriever, queries, candidates, query_of, self.cfg, do_filter=True, do_compress=True)
 
-        self.budget.spend(1)
-        answer, shown = generate(self.llm, question, items, tag="s3")
+        self.budget.spend_final(1)
+        answer, shown = self.generate_answer(question, items, tag="s3")
         abstained = answer.strip().upper().startswith("INSUFFICIENT_EVIDENCE")
         return SystemResult(
             system=self.name,
@@ -83,4 +88,5 @@ class S3DecompSystem(System):
             final_evidence=shown,
             usage=self.usage(),
             trace=self.trace,
+            errors=self.errors,
         )
