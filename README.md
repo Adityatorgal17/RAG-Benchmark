@@ -93,6 +93,15 @@ implementations. Tune values such as `retrieval.s0_k`, `retrieval.rrf_k`,
 **Common Commands**:
 
 ```bash
+# Setup virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+source .venv/bin/activate
+
+# Install required requirements
+pip install -r requirements.txt
+
 # Run all tests
 pytest
 
@@ -101,6 +110,9 @@ python scripts/run_system.py --system S0 --split dev --limit 3 --fake
 
 # Real test run (with API keys)
 python scripts/run_system.py --system S2 --split test --qids t01,t02
+
+# Run web server(ui)
+PYTHONPATH=src .venv/bin/uvicorn ui_server:app --host 127.0.0.1 --port 8000
 ```
 
 ### 📊 Expected Output
