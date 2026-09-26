@@ -88,9 +88,27 @@ class KeyPool:
                 return self.active_key
         raise QuotaExhausted("All configured keys are exhausted")
 
+    def _marked_exhausted_until(self) -> str:
+        """Return the earliest reset time for exhausted keys."""
+        reset_times: list[datetime] = []
+        for key in self.keys:
+            if self._is_recently_exhausted(key):
+                value = self._state.get(self._state_key(key))
+                if value:
+                    try:
+                        marked = datetime.fromisoformat(value)
+                        reset_time = marked + timedelta(hours=24)
+                        reset_times.append(reset_time)
+                    except ValueError:
+                        pass
+        if reset_times:
+            earliest = min(reset_times)
+            return earliest.strftime("%Y-%m-%d %H:%M UTC")
+        return "tomorrow (24h after last exhaustion)"
+
     def run_with_fallback(self, fn):
         if not self.keys:
-            raise QuotaExhausted("No keys configured")
+            raise QuotaExhausted(f"❌ FATAL: No {self.provider.upper()} API keys configured. Set {self.provider.upper()}_API_KEY or {self.provider.upper()}_API_KEY1, {self.provider.upper()}_API_KEY2, etc. in .env")
 
         for _ in range(len(self.keys)):
             key = self.keys[self.index]
@@ -103,4 +121,12 @@ class KeyPool:
             except QuotaExhausted:
                 self._mark_exhausted(key)
                 self._next_key()
-        raise QuotaExhausted("All configured keys are exhausted")
+        raise QuotaExhausted(
+            f"❌ CRITICAL: ALL {len(self.keys)} {self.provider.upper()} API KEYS ARE EXHAUSTED (daily quota hit).\n"
+            f"Keys marked exhausted until tomorrow:\n"
+            + "\n".join([f"  - {k[:16]}..." for k in self.keys])
+            + f"\nPlease:\n"
+            f"  1. Add more {self.provider.upper()}_API_KEY{len(self.keys)+1}, {self.provider.upper()}_API_KEY{len(self.keys)+2}, etc. to .env\n"
+            f"  2. Restart this command\n"
+            f"  3. Or wait until {self._marked_exhausted_until()} for keys to reset"
+        )

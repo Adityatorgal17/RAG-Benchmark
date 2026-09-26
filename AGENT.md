@@ -14,7 +14,7 @@ Core rule: all systems share the same corpus, chunks, generation prompt, LLM bud
 - Package code lives under `src/ragc`.
 - Tests use `pytest` with `pythonpath = src`.
 - Main LLM is configured in `config.yaml` as Groq `openai/gpt-oss-20b`.
-- Judge LLM is configured in `config.yaml` as Gemini `gemini-3.5-flash-lite`.
+- Judge LLM is configured in `config.yaml` as Groq `llama-3.3-70b-versatile`.
 - Never hard-code model ids, paths, chunk sizes, thresholds, or budgets outside `config.yaml` unless a test fixture explicitly needs it.
 - Real API keys go in `.env`; do not print or commit them.
 

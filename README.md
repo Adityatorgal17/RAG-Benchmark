@@ -71,8 +71,8 @@ main_llm:
   temperature: 0
   budget: {max_llm_calls: 8, reserve_final: 1}
 judge_llm:
-  provider: gemini
-  model: gemini-3.5-flash-lite
+  provider: groq
+  model: llama-3.3-70b-versatile
 embedding:
   model: BAAI/bge-small-en-v1.5
 reranker:

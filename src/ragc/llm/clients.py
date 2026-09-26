@@ -259,4 +259,4 @@ def build_judge_llm(cfg, *, fake: bool = False):
         return FakeLLM(cache=LLMCache(getattr(getattr(cfg, "paths", None), "cache", "cache/llm_cache.sqlite")))
     judge = getattr(cfg, "judge_llm")
     cache = LLMCache(getattr(getattr(cfg, "paths", None), "cache", "cache/llm_cache.sqlite"))
-    return _build_provider_llm(judge, role_name="judge_llm", default_provider="gemini", default_model="gemini-3.5-flash-lite", default_rpm=10, default_max_tokens=400, cache=cache)
+    return _build_provider_llm(judge, role_name="judge_llm", default_provider="groq", default_model="llama-3.3-70b-versatile", default_rpm=10, default_max_tokens=400, cache=cache)

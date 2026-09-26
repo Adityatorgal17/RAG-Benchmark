@@ -21,6 +21,13 @@ def _split_sentences(text: str) -> list[str]:
 def _score_candidates(reranker, queries: list[str], candidates: list[str], retriever, query_of=None, *, cfg=None) -> list[tuple[str, float]]:
     query_of = query_of or {}
     score_map: dict[str, float] = {}
+    
+    # If no reranker, use retrieval order (scores from dense + BM25)
+    if reranker is None:
+        for idx, chunk_id in enumerate(candidates):
+            score_map[chunk_id] = float(len(candidates) - idx) / len(candidates) if candidates else 0.0
+        return sorted(score_map.items(), key=lambda kv: (-kv[1], kv[0]))
+    
     for chunk_id in candidates:
         chunk = retriever.get_chunk(chunk_id) if retriever is not None else {}
         text = (chunk.get("header", "") + " " + chunk.get("text", "")).strip()
@@ -70,7 +77,7 @@ def post_refine(reranker, retriever, queries: list[str], candidates: list[str], 
             continue
         items.append(EvidenceItem(chunk_id=chunk_id, header=chunk.get("header", ""), text=chunk.get("text", ""), source_type=chunk.get("source_type", "")))
 
-    if not do_compress:
+    if not do_compress or reranker is None:
         return items
 
     compacted: list[EvidenceItem] = []

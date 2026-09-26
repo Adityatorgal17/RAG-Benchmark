@@ -5,7 +5,7 @@ def test_load_config():
     cfg = load_config()
     assert cfg.main_llm.provider == "groq"
     assert cfg.main_llm.model == "openai/gpt-oss-20b"
-    assert cfg.judge_llm.provider == "gemini"
+    assert cfg.judge_llm.provider == "groq"
     assert cfg.seed == 42
 
 
