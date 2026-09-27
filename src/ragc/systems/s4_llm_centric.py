@@ -56,6 +56,7 @@ class S4LLMCentricSystem(System):
         candidate_ids = [hit.chunk_id for hit in hits]
 
         notes_payload = {"notes": []}
+        notes_valid = True  # Will be set to False if notes generation fails
         if self.llm is not None and hits:
             passages = []
             for hit in hits:
@@ -73,17 +74,17 @@ class S4LLMCentricSystem(System):
                 text = payload.get("text") or "{}"
                 if isinstance(text, str):
                     notes_payload = json.loads(text)
+                    notes_valid = isinstance(notes_payload, dict) and isinstance(notes_payload.get("notes", []), list) and len(notes_payload.get("notes", [])) > 0
             except Exception as exc:
                 self.record_error("s4_notes_error", exc)
                 notes_payload = {"notes": []}
+                notes_valid = False  # Mark as invalid when exception occurs
 
         note_map = {
             str(entry.get("chunk_id")): entry
             for entry in notes_payload.get("notes", [])
             if isinstance(entry, dict) and str(entry.get("chunk_id", "")).strip()
         }
-
-        notes_valid = isinstance(notes_payload, dict) and isinstance(notes_payload.get("notes", []), list)
 
         relevant_ids: list[str] = []
         if hits:

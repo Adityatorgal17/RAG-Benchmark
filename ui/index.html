@@ -1,120 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RAG Explorer</title>
-    <link rel="stylesheet" href="/static/styles.css" />
-  </head>
-  <body>
-    <div class="app-shell">
-      <aside class="sidebar">
-        <div class="brand-block">
-          <div class="eyebrow">CVE corpus benchmark</div>
-          <h1>RAG Explorer</h1>
-          <p>Compare benchmark systems against the same local corpus and inspect the evidence behind each answer.</p>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG Pipeline Explorer</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Control Panel -->
+    <aside class="control-panel">
+      <div class="panel-header">
+        <h1>RAG Explorer</h1>
+        <p>Visualize each RAG system's pipeline</p>
+      </div>
+
+      <!-- Runtime Status -->
+      <div class="status-card">
+        <div class="status-label">Runtime Mode</div>
+        <div class="status-value" id="runtime-mode">Initializing...</div>
+        <div class="status-detail" id="runtime-detail">--</div>
+      </div>
+
+      <!-- System Selector -->
+      <div class="control-section">
+        <div class="control-label">Select System</div>
+        <div class="system-grid" id="system-selector"></div>
+      </div>
+
+      <!-- Question Input -->
+      <div class="control-section">
+        <label class="control-label">Your Question</label>
+        <textarea 
+          id="question-input" 
+          class="question-textarea" 
+          placeholder="Ask a security question about CVE vulnerabilities..."
+          rows="6"
+        ></textarea>
+      </div>
+
+      <!-- Run Button -->
+      <button id="run-button" class="run-button">
+        <span id="run-text">Run Pipeline</span>
+        <span id="run-spinner" class="spinner" style="display: none;"></span>
+      </button>
+
+      <!-- Info Box -->
+      <div class="info-box">
+        <strong>💡 Tip:</strong> Each step shows intermediate outputs. Expand to see full details.
+      </div>
+    </aside>
+
+    <!-- Main Chat-like Panel -->
+    <main class="chat-panel">
+      <!-- Top Bar with Stats -->
+      <div class="chat-header">
+        <div class="header-left">
+          <div class="system-badge" id="selected-system-badge">S0</div>
+          <div class="system-info">
+            <div class="system-title" id="system-title">Naive RAG</div>
+            <div class="system-desc" id="system-desc">Dense retrieval plus fixed generation</div>
+          </div>
         </div>
-
-        <div class="runtime-card">
-          <div>
-            <span class="section-label">Runtime</span>
-            <strong id="runtime-mode">Checking...</strong>
+        <div class="header-stats">
+          <div class="stat-item">
+            <span class="stat-label">LLM Calls</span>
+            <span class="stat-value" id="stat-llm">0</span>
           </div>
-          <span id="runtime-badge" class="status-badge neutral">Backend</span>
+          <div class="stat-item">
+            <span class="stat-label">Time</span>
+            <span class="stat-value" id="stat-time">--</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Status</span>
+            <span class="stat-value status-ready" id="stat-status">Ready</span>
+          </div>
         </div>
+      </div>
 
-        <div class="control-group">
-          <label class="control-label">System</label>
-          <div id="system-toggle" class="toggle-grid"></div>
+      <!-- Messages Container -->
+      <div class="messages-container" id="messages-container">
+        <div class="welcome-message">
+          <h2>Welcome to RAG Pipeline Explorer</h2>
+          <p>Select a system and ask a question to visualize the RAG pipeline execution.</p>
+          <div class="welcome-tips">
+            <p><strong>🔍 What you'll see:</strong></p>
+            <ul>
+              <li>Retrieval results (dense & sparse search)</li>
+              <li>Reranking and filtering steps</li>
+              <li>Evidence compression</li>
+              <li>Final answer generation</li>
+              <li>Citations and source tracking</li>
+            </ul>
+          </div>
         </div>
+      </div>
 
-        <div class="control-group">
-          <label class="control-label" for="question-input">Question</label>
-          <textarea id="question-input" rows="7" placeholder="Ask a question about the corpus..."></textarea>
+      <!-- Input Area at Bottom -->
+      <div class="chat-input-area">
+        <div class="quick-actions">
+          <button class="quick-action" id="clear-chat">🗑️ Clear</button>
+          <button class="quick-action" id="export-trace">📋 Export</button>
         </div>
+      </div>
+    </main>
+  </div>
 
-        <button id="run-button" class="primary-button">Run selected system</button>
-        <div id="status" class="status-pill">Ready</div>
-      </aside>
-
-      <main class="main-panel">
-        <section class="top-bar">
-          <div class="selected-block">
-            <div class="eyebrow">Current system</div>
-            <h2 id="selected-system">S0</h2>
-          </div>
-          <div class="run-stats">
-            <span id="llm-calls">0 calls</span>
-            <span id="latency">0.00s</span>
-            <span id="citation-count">0 citations</span>
-          </div>
-        </section>
-
-        <section class="answer-section">
-          <div class="section-header">
-            <div>
-              <div class="section-label">Answer</div>
-              <h3>Generated response</h3>
-            </div>
-            <span id="abstention-badge" class="status-badge neutral">No run yet</span>
-          </div>
-          <div id="answer-output" class="answer-output">Waiting for a run...</div>
-        </section>
-
-        <section class="insight-grid">
-          <div class="detail-card">
-            <div class="section-header compact">
-              <div>
-                <div class="section-label">Retrieval</div>
-                <h3>Pre-retrieval decisions</h3>
-              </div>
-            </div>
-            <div id="pre-output" class="mono-list empty">No pre-retrieval steps yet.</div>
-          </div>
-          <div class="metric-card">
-            <div class="section-header compact">
-              <div>
-                <div class="section-label">Agent trace</div>
-                <h3>Control steps</h3>
-              </div>
-            </div>
-            <div id="trace-output" class="trace-list empty">No trace yet.</div>
-          </div>
-        </section>
-
-        <section class="insight-grid">
-          <div class="detail-card">
-            <div class="section-header compact">
-              <div>
-                <div class="section-label">Refinement</div>
-                <h3>Post-retrieval steps</h3>
-              </div>
-            </div>
-            <div id="post-output" class="mono-list empty">No post-retrieval steps yet.</div>
-          </div>
-          <div class="detail-card">
-            <div class="section-header compact">
-              <div>
-                <div class="section-label">Candidates</div>
-                <h3>Retrieved chunk IDs</h3>
-              </div>
-            </div>
-            <div id="candidate-output" class="chip-list"></div>
-          </div>
-        </section>
-
-        <section class="evidence-section">
-          <div class="section-header">
-            <div>
-              <div class="section-label">Evidence</div>
-              <h3>Chunks shown to generation</h3>
-            </div>
-          </div>
-          <div id="evidence-output" class="evidence-list"></div>
-        </section>
-      </main>
+  <!-- Modal for Step Details -->
+  <div class="modal" id="step-detail-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">Step Details</h3>
+        <button class="modal-close" id="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
     </div>
+  </div>
 
-    <script src="/static/app.js"></script>
-  </body>
+  <script src="/static/app.js"></script>
+</body>
 </html>

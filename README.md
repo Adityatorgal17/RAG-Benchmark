@@ -112,7 +112,13 @@ python scripts/run_system.py --system S0 --split dev --limit 3 --fake
 python scripts/run_system.py --system S2 --split test --qids t01,t02
 
 # Run web server(ui)
-PYTHONPATH=src .venv/bin/uvicorn ui_server:app --host 127.0.0.1 --port 8000
+python3 ui_server.py
+
+# Run full benchmark (40 questions, all 13 systems)
+python3 scripts/benchmark_all_systems.py --num-questions 40
+
+# Once complete, generate report
+python3 scripts/benchmark_report.py
 ```
 
 ### 📊 Expected Output

@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+import sys
+import os
+
+# Add src to path for module discovery
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -31,3 +37,7 @@ def run_system(req: RunRequest):
 @app.get("/api/status")
 def runtime_status():
     return get_ui_runtime_status()
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

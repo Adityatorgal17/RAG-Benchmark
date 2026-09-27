@@ -108,7 +108,36 @@ class S5SingleAgentSystem(System):
                     step = text
             except Exception as e:
                 self.record_error(f"s5_agent_error_{step_num}", e)
-                break
+                if step_num == 0 and not queries and self.retriever is not None:
+                    try:
+                        queries.append(question)
+                        latest = [
+                            {
+                                "chunk_id": hit.chunk_id,
+                                "header": self.retriever.get_chunk(hit.chunk_id).get("header", ""),
+                                "text": self.retriever.get_chunk(hit.chunk_id).get("text", ""),
+                                "score": hit.score,
+                                "rank": hit.rank,
+                                "via": hit.via
+                            }
+                            for hit in self.retriever.hybrid(question, dense_k, bm25_k, tool_k)
+                        ]
+                        for item in latest:
+                            chunk_id = item.get("chunk_id")
+                            if chunk_id and chunk_id not in candidate_ids:
+                                candidate_ids.append(chunk_id)
+                        self.trace.append({
+                            "tag": f"s5_agent_fallback_search_{step_num}",
+                            "query": question,
+                            "results_count": len(latest) if latest else 0,
+                            "reason": "agent_error"
+                        })
+                        break
+                    except Exception as fallback_err:
+                        self.record_error(f"s5_agent_fallback_error_{step_num}", fallback_err)
+                        break
+                else:
+                    break
 
             if not isinstance(step, dict):
                 self.errors.append(f"s5_agent_invalid_step_{step_num}: expected object")

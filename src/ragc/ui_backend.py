@@ -144,6 +144,10 @@ def build_ui_response(system_id: str, question: str) -> dict[str, Any]:
     result = system.run("ui-demo", question)
 
     side_summary = _parse_trace_payloads(result.trace)
+    
+    # Extract LLM calls count from usage (correctly tracks budget.used)
+    llm_calls = int(result.usage.get("llm_calls", 0)) if result.usage else 0
+    
     ui_payload = {
         "system": result.system,
         "question": result.question,
@@ -151,7 +155,7 @@ def build_ui_response(system_id: str, question: str) -> dict[str, Any]:
         "runtime": get_ui_runtime_status(),
         "abstained": result.abstained,
         "cited_ids": result.cited_ids,
-        "candidate_ids": result.candidate_ids,
+        "candidates": result.candidate_ids,  # For UI visualization
         "trace": result.trace,
         "steps": _summarize_trace(result.trace),
         "model_thinking_state": side_summary["thought"],
@@ -170,5 +174,6 @@ def build_ui_response(system_id: str, question: str) -> dict[str, Any]:
         ],
         "usage": result.usage,
         "errors": result.errors,
+        "llm_calls": llm_calls,
     }
     return ui_payload
