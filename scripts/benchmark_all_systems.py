@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import sys
 import os
+import time
 from collections import defaultdict
 from time import perf_counter
 from pathlib import Path
@@ -48,10 +49,14 @@ def load_questions(limit=None):
             if limit and i >= limit:
                 break
             data = json.loads(line)
+            # Extract chunk_ids from gold_evidence (the actual field name in questions.jsonl)
+            gold_evidence = data.get("gold_evidence", [])
+            gold_chunks = [e["chunk_id"] for e in gold_evidence if isinstance(e, dict) and "chunk_id" in e]
             questions.append({
                 "qid": data.get("qid", f"q{i}"),
                 "text": data.get("question", ""),
-                "gold_chunks": data.get("gold_chunks", []),
+                "gold_chunks": gold_chunks,
+                "gold_answer": data.get("gold_answer", ""),
             })
     return questions
 
@@ -154,7 +159,12 @@ def run_benchmark(num_questions: int = 40, output_file: str = "results/benchmark
     total = len(SYSTEMS) * len(questions)
     current = 0
     
-    for system_id in SYSTEMS:
+    for system_idx, system_id in enumerate(SYSTEMS):
+        # Rate limiting: add delay between systems to prevent simultaneous quota exhaustion
+        if system_idx > 0:
+            print(f"  ⏳ Cooling down between systems...")
+            time.sleep(3.0)
+        
         print(f"\n📊 Benchmarking {system_id}...")
         factory = get_system_factory(system_id)
         
@@ -194,9 +204,10 @@ def run_benchmark(num_questions: int = 40, output_file: str = "results/benchmark
                 mrr_5 = compute_mrr_at_k(candidate_ids, gold_chunks, k=5)
                 precision_5 = compute_precision_at_k(candidate_ids, gold_chunks, k=5)
                 
-                # Answer quality
+                # Answer quality — compare against gold reference answer, not the question itself
                 answer = result.answer or ""
-                token_f1 = compute_token_f1(answer, text)
+                gold_answer = question.get("gold_answer", "") or text
+                token_f1 = compute_token_f1(answer, gold_answer)
                 
                 # Abstention tracking
                 is_abstain = result.abstained or answer.strip().upper().startswith("INSUFFICIENT_EVIDENCE")
@@ -239,14 +250,25 @@ def run_benchmark(num_questions: int = 40, output_file: str = "results/benchmark
                 pct = (current / total) * 100
                 print(f"  [{pct:5.1f}%] {qid}: {latency:.2f}s, {llm_calls} calls, R@5={recall_5:.3f}, F1={token_f1:.3f}")
                 
+                # Rate limiting: add delay based on number of LLM calls
+                # With 6 keys and 25 RPM per key = 150 RPM total
+                # That's 2.5 calls per second safely
+                # We add 0.4-0.8s per call to spread load, plus a base 0.1s between questions
+                call_delay = max(0.1, min(1.0, llm_calls * 0.3))
+                time.sleep(call_delay)
+                
             except Exception as e:
                 print(f"  ❌ {qid}: {str(e)}")
                 system_errors += 1
                 system_stats[system_id]["errors"].append(str(e))
+                # Rate limiting: add longer delay after errors to prevent quota thrashing
+                time.sleep(1.0)
         
         # Compute final system stats
+        # Use actual count of appended values (not total - errors) to avoid inflating
+        # metrics when systems log errors via result.errors but still produce outputs.
         stats = system_stats[system_id]
-        n = len(questions) - system_errors
+        n = len(stats["recall_at_5"])  # actual number of runs that completed (including ones with result.errors)
         if n > 0:
             stats["latency_s"] = round(sum(stats["latency_s"]) / n, 4)
             stats["llm_calls"] = round(sum(stats["llm_calls"]) / n, 2)
@@ -257,7 +279,6 @@ def run_benchmark(num_questions: int = 40, output_file: str = "results/benchmark
             stats["precision_at_5"] = round(sum(stats["precision_at_5"]) / n, 4)
             stats["token_f1"] = round(sum(stats["token_f1"]) / n, 4)
         else:
-            # All runs had errors, use defaults
             stats["latency_s"] = 0.0
             stats["llm_calls"] = 0.0
             stats["prompt_tokens"] = 0.0

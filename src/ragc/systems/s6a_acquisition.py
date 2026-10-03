@@ -45,8 +45,8 @@ class S6aAcquisitionSystem(System):
             try:
                 payload = self.call_json(
                     "s6a_decision",
-                    "You are the Retrieval-Decision agent. Decide whether a search is needed and how complex the retrieval loop should be.",
-                    "Question: " + question + "\nReturn JSON with retrieve boolean and complexity one of simple, multi_fact, multi_hop.",
+                    "You are the Retrieval-Decision agent. Decide whether a search is needed and how complex it should be. Respond only with a plain JSON object, no tools or function calls.",
+                    "Question: " + question + '\n\nReturn JSON: {"retrieve": true, "complexity": "simple"} where complexity is one of: simple, multi_fact, multi_hop.',
                     ["retrieve", "complexity"],
                 )
                 decision = self._parse_json_object(payload.get("text") if isinstance(payload, dict) else payload)
@@ -91,8 +91,8 @@ class S6aAcquisitionSystem(System):
             try:
                 payload = self.call_json(
                     "s6a_query",
-                    "You are the Query agent. Write one focused search query for a document collection.",
-                    "Question: " + question + "\nPrevious queries: " + (", ".join(queries) if queries else "(none)") + "\nMissing information: " + (missing or "(none)") + "\nReturn JSON with one query.",
+                    "You are the Query agent. Write one focused search query for a cybersecurity document collection. Respond only with a plain JSON object, no tools or function calls.",
+                    "Question: " + question + "\nPrevious queries: " + (", ".join(queries) if queries else "(none)") + "\nMissing information: " + (missing or "(none)") + '\n\nReturn JSON: {"query": "your search query here"}',
                     ["query"],
                 )
                 step = self._parse_json_object(payload.get("text") if isinstance(payload, dict) else payload)
@@ -135,11 +135,11 @@ class S6aAcquisitionSystem(System):
             try:
                 sufficiency_payload = self.call_json(
                     "s6a_suff",
-                    "You are the Sufficiency agent. Judge whether the retrieved evidence is enough to answer the question completely.",
+                    "You are the Sufficiency agent. Judge whether the retrieved evidence is enough to answer the question completely. Respond only with a plain JSON object, no tools or function calls.",
                     "Question: " + question + f"\nEvidence (top {final_k} by retrieval score):\n" + "\n\n".join(
                         f"{item['chunk_id']}: {item['header']}\n{(item['text'] or '')[:600]}"
                         for item in sorted(evidence_map.values(), key=lambda d: float(d.get('score', 0.0)), reverse=True)[:final_k]
-                    ) + "\nReturn JSON with sufficient boolean and missing note when insufficient.",
+                    ) + '\n\nReturn JSON: {"sufficient": true/false, "missing": "what is missing if insufficient"}',
                     ["sufficient", "missing"],
                 )
                 sufficiency = self._parse_json_object(sufficiency_payload.get("text") if isinstance(sufficiency_payload, dict) else sufficiency_payload)

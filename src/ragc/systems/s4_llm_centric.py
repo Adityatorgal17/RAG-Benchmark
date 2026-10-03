@@ -24,8 +24,8 @@ class S4LLMCentricSystem(System):
             try:
                 payload = self.call_json(
                     "s4_gate",
-                    "You decide whether answering a question requires searching a fixed collection of documents.",
-                    f"Question: {question}\nReturn JSON with retrieve boolean.",
+                    "You decide whether answering a question requires searching a fixed collection of cybersecurity documents. Respond only with a plain JSON object, no tools or function calls.",
+                    f'Question: {question}\n\nReturn exactly this JSON: {{"retrieve": true}} if search is needed, or {{"retrieve": false}} if you can answer from memory.',
                     ["retrieve"],
                 )
                 text = payload.get("text") or "{}"
@@ -63,12 +63,14 @@ class S4LLMCentricSystem(System):
                 chunk = self.retriever.get_chunk(hit.chunk_id) if self.retriever is not None else {}
                 if not chunk:
                     continue
-                passages.append({"chunk_id": hit.chunk_id, "header": chunk.get("header", ""), "text": chunk.get("text", "")})
+                # Truncate text to keep prompt size manageable (prevents empty model responses)
+                text_snippet = (chunk.get("text", "") or "")[:300]
+                passages.append({"chunk_id": hit.chunk_id, "header": chunk.get("header", ""), "text": text_snippet})
             try:
                 payload = self.call_json(
                     "s4_notes",
-                    "You read retrieved passages critically before answering.",
-                    "Question: " + question + "\n\nPassages:\n" + "\n\n".join(f"{p['chunk_id']}: {p['header']}\n{p['text']}" for p in passages) + "\n\nReturn JSON with notes for each passage.",
+                    "You read retrieved passages critically and assess their relevance. Respond only with a plain JSON object, no tools or function calls.",
+                    "Question: " + question + "\n\nPassages:\n" + "\n\n".join(f"{p['chunk_id']}: {p['header']}\n{p['text']}" for p in passages) + '\n\nReturn JSON: {"notes": [{"chunk_id": "id", "relevance": "relevant/partial/irrelevant", "note": "key fact"}]}',
                     ["notes"],
                 )
                 text = payload.get("text") or "{}"
@@ -92,7 +94,9 @@ class S4LLMCentricSystem(System):
                 item = note_map.get(hit.chunk_id)
                 if item and str(item.get("relevance", "irrelevant")).lower() in {"relevant", "partial"}:
                     relevant_ids.append(hit.chunk_id)
-        if not relevant_ids and hits and not notes_valid:
+        # Fallback: if no relevant chunks found (model said all irrelevant, or notes failed),
+        # use all retrieved hits so the final generation can still try to answer.
+        if not relevant_ids and hits:
             relevant_ids = [hit.chunk_id for hit in hits]
 
         evidence: list[EvidenceItem] = []
@@ -136,8 +140,8 @@ class S4LLMCentricSystem(System):
             try:
                 payload = self.call_json(
                     "s4_critique",
-                    "You audit a draft answer against its evidence.",
-                    "Question: " + question + "\n\nEvidence:\n" + "\n\n".join(f"{item.chunk_id}: {item.header}\n{item.text}" for item in evidence) + "\n\nDraft answer:\n" + answer1 + "\n\nReturn JSON critique.",
+                    "You audit a draft answer against the provided evidence. Respond only with a plain JSON object, no tools or function calls.",
+                    "Question: " + question + "\n\nEvidence:\n" + "\n\n".join(f"{item.chunk_id}: {item.header}\n{(item.text or '')[:200]}" for item in evidence) + "\n\nDraft answer:\n" + answer1 + '\n\nReturn JSON: {"supported": "full/partial/none", "useful": 1-5, "unsupported_claims": [], "missing_parts": []}',
                     ["supported", "useful", "unsupported_claims", "missing_parts"],
                 )
                 text = payload.get("text") or "{}"

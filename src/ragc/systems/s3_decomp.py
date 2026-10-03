@@ -21,8 +21,8 @@ class S3DecompSystem(System):
             try:
                 payload = self.call_json(
                     "s3_decomp",
-                    "You decompose questions about cybersecurity vulnerabilities for a document collection.",
-                    f"Question: {question}\nReturn JSON with sub_queries.",
+                    "You decompose questions about cybersecurity vulnerabilities into focused sub-queries for a document collection. Respond only with a plain JSON object, no tools or function calls.",
+                    f'Question: {question}\n\nReturn JSON: {{"sub_queries": ["sub-query 1", "sub-query 2"]}}',
                     ["sub_queries"],
                 )
                 data = payload.get("text") or "{}"
@@ -72,7 +72,10 @@ class S3DecompSystem(System):
                     if chunk_id not in candidates:
                         candidates.append(chunk_id)
 
-        items = post_refine(self.reranker, self.retriever, queries, candidates, query_of, self.cfg, do_filter=True, do_compress=True)
+        # do_compress=False: keep full chunk text instead of sentence-level compression.
+        # Compression picks individual sentences which often strips the context the LLM
+        # needs, causing INSUFFICIENT_EVIDENCE abstention (~75% rate with compression on).
+        items = post_refine(self.reranker, self.retriever, queries, candidates, query_of, self.cfg, do_filter=True, do_compress=False)
 
         self.budget.spend_final(1)
         answer, shown = self.generate_answer(question, items, tag="s3")

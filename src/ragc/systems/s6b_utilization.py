@@ -78,10 +78,17 @@ class S6bUtilizationSystem(System):
             )
 
         try:
+            # Limit to top 5 passages and truncate text to keep prompt manageable
+            def _fmt_hit(hit):
+                chunk = self.retriever.get_chunk(hit.chunk_id)
+                header = chunk.get('header', '')
+                text = (chunk.get('text', '') or '')[:200]
+                return f"{hit.chunk_id}: {header}\n{text}"
+            eval_hits = hits[:5]  # Only score top 5 to keep prompt short
             payload = self.call_json(
                 "s6b_eval",
-                "You are the Evaluator agent. Rate how useful each retrieved passage is for answering the question.",
-                "Question: " + question + "\nPassages:\n" + "\n\n".join(f"{idx}: {self.retriever.get_chunk(hit.chunk_id).get('header', '')}\n{self.retriever.get_chunk(hit.chunk_id).get('text', '')}" for idx, hit in enumerate(hits, 1)) + "\nReturn JSON with a 'scores' list of {chunk_id, score, reason} objects.",
+                "You are the Evaluator agent. Rate how useful each retrieved passage is for answering the question. Respond only with a plain JSON object, no tools or function calls.",
+                "Question: " + question + "\nPassages:\n" + "\n\n".join(_fmt_hit(hit) for hit in eval_hits) + '\n\nReturn JSON: {"scores": [{"chunk_id": "id", "score": 1-5, "reason": "why"}]}',
                 ["scores"],
             )
             eval_data = self._json(payload.get("text") if isinstance(payload, dict) else payload)
@@ -114,8 +121,8 @@ class S6bUtilizationSystem(System):
             try:
                 payload = self.call_json(
                     "s6b_notes",
-                    "You are the Note-taking agent. Summarize the useful evidence into facts, conflicts, and gaps.",
-                    "Question: " + question + "\nEvidence:\n" + "\n\n".join(f"{item.chunk_id}: {item.header}\n{item.text}" for item in evidence) + "\nReturn JSON with notes, conflicts, and gaps.",
+                    "You are the Note-taking agent. Summarize the useful evidence into facts, conflicts, and gaps. Respond only with a plain JSON object, no tools or function calls.",
+                    "Question: " + question + "\nEvidence:\n" + "\n\n".join(f"{item.chunk_id}: {item.header}\n{(item.text or '')[:300]}" for item in evidence) + '\n\nReturn JSON: {"notes": [{"chunk_ids": ["id"], "fact": "key fact"}], "conflicts": [], "gaps": []}',
                     ["notes", "conflicts", "gaps"],
                 )
                 notes_payload = self._json(payload.get("text") if isinstance(payload, dict) else payload)
@@ -146,8 +153,8 @@ class S6bUtilizationSystem(System):
             try:
                 payload = self.call_json(
                     "s6b_recon",
-                    "You are the Reconciliation agent. Decide whether the answer matches the evidence and complete coverage.",
-                    "Question: " + question + "\nEvidence:\n" + "\n\n".join(f"{item.chunk_id}: {item.header}\n{item.text}" for item in evidence) + "\nDraft answer:\n" + answer + "\nReturn JSON with aligned boolean and critiques list.",
+                    "You are the Reconciliation agent. Decide whether the answer is well-supported by the evidence. Respond only with a plain JSON object, no tools or function calls.",
+                    "Question: " + question + "\nEvidence:\n" + "\n\n".join(f"{item.chunk_id}: {item.header}\n{(item.text or '')[:200]}" for item in evidence) + "\nDraft answer:\n" + answer + '\n\nReturn JSON: {"aligned": true/false, "critiques": ["issue1"]}',
                     ["aligned", "critiques"],
                 )
                 recon = self._json(payload.get("text") if isinstance(payload, dict) else payload)

@@ -21,8 +21,8 @@ class S1PreSystem(System):
             try:
                 payload = self.call_json(
                     "s1_rewrite",
-                    "You rewrite search queries for a collection of cybersecurity documents.",
-                    f"Question: {question}\nReturn JSON with rewrites and hyde.",
+                    "You rewrite search queries for a collection of cybersecurity documents. Respond only with a plain JSON object, no tools or function calls.",
+                    f'Question: {question}\n\nReturn JSON: {{"rewrites": ["rewrite1", "rewrite2"], "hyde": "hypothetical document passage that would answer the question"}}',
                     ["rewrites", "hyde"],
                 )
                 data = payload.get("text") or "{}"

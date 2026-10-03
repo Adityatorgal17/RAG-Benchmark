@@ -150,6 +150,7 @@ class System(ABC):
         the method raises a `BudgetExceeded` so the surrounding loop can end cleanly and
         continue to the final generation step.
         """
+        import json as _json, re as _re
         active_budget = budget or self.budget
         if not active_budget.can_spend(1):
             raise BudgetExceeded("LLM budget exhausted before agent step")
@@ -159,10 +160,37 @@ class System(ABC):
         if self.llm is None:
             raise RuntimeError("No LLM client configured for this system")
 
-        payload = self.llm.generate(user, json_mode=True, system=system)
-        self._record_llm_result(payload)
+        try:
+            payload = self.llm.generate(user, json_mode=True, system=system)
+            self._record_llm_result(payload)
+            result = getattr(payload, "text", payload) or ""
+        except Exception as _exc:
+            # json_validate_failed / tool_use_failed: model couldn't produce JSON
+            # in constrained mode. Retry once in plain text mode and extract JSON.
+            _exc_str = str(_exc)
+            if "json_validate_failed" in _exc_str or "tool_use_failed" in _exc_str or not _exc_str:
+                result = ""
+            else:
+                raise  # re-raise unrelated errors (quota, network, etc.)
+
         elapsed = perf_counter() - start
-        result = getattr(payload, "text", payload)
+
+        # If model returned empty (or failed JSON mode), retry in plain text mode.
+        if not str(result).strip():
+            try:
+                payload2 = self.llm.generate(
+                    user + "\n\nIMPORTANT: Reply with ONLY a raw JSON object. No markdown, no explanation.",
+                    json_mode=False,
+                    system=system + " Return only a raw JSON object, nothing else.",
+                )
+                self._record_llm_result(payload2)
+                raw = getattr(payload2, "text", payload2) or ""
+                # Extract first JSON object from plain text response
+                match = _re.search(r'\{.*\}', raw, _re.DOTALL)
+                result = match.group(0) if match else raw
+            except Exception:
+                result = ""  # Callers handle empty/invalid JSON with their own fallbacks
+
         self.trace.append({"tag": tag, "system": system, "user": user, "latency_s": elapsed, "required": required, "result": result})
         return {"text": result}
 

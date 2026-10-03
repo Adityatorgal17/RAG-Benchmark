@@ -7,6 +7,13 @@ import json
 import sys
 from pathlib import Path
 
+# Load environment variables FIRST (before any ragc imports)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from ragc.config import load_config
 from ragc.llm.clients import build_main_llm
 from ragc.llm.keypool import QuotaExhausted

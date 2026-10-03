@@ -50,15 +50,15 @@ class S6cHybridSystem(System):
             if self.use_routing:
                 payload = self.call_json(
                     "s6c_plan",
-                    "You are the Planner and Router agent. Break a question into sub-questions and route each to the most likely source types.",
-                    "Question: " + question + "\nReturn JSON with a 'sub_questions' list where each item has an 'id', a 'question', and 'sources' from: nvd, kev, vendor, threatintel, attack.",
+                    "You are the Planner and Router agent. Break a question into sub-questions and route each to the most likely source types. Respond only with a plain JSON object, no tools or function calls.",
+                    "Question: " + question + '\n\nReturn JSON: {"sub_questions": [{"id": "s1", "question": "sub-question", "sources": ["nvd"]}]} where sources are from: nvd, kev, vendor, threatintel, attack.',
                     ["sub_questions"],
                 )
             else:
                 payload = self.call_json(
                     "s6c_plan_noroute",
-                    "You are the Planner agent. Break a question into self-contained sub-questions without source routing.",
-                    "Question: " + question + "\nReturn JSON with a 'sub_questions' list where each item has an 'id' and a 'question'.",
+                    "You are the Planner agent. Break a question into self-contained sub-questions. Respond only with a plain JSON object, no tools or function calls.",
+                    "Question: " + question + '\n\nReturn JSON: {"sub_questions": [{"id": "s1", "question": "sub-question"}]}',
                     ["sub_questions"],
                 )
             data = self._json(payload.get("text") if isinstance(payload, dict) else payload)
@@ -177,10 +177,15 @@ class S6cHybridSystem(System):
                 break
 
             try:
+                # Truncate passage texts to keep prompt size manageable
+                new_passages_trimmed = [
+                    {"sub_question": g["sub_question"], "passages": [{**p, "text": (p.get("text") or "")[:300]} for p in g["passages"]]}
+                    for g in new_passages
+                ]
                 payload = self.call_json(
                     "s6c_refine",
-                    "You are the Refinement agent. Turn newly retrieved passages into notes and merge them into the shared knowledge state.",
-                    "Question: " + question + "\nKnowledge notes so far (facts only):\n" + (json.dumps(state_notes) if state_notes else "(none)") + "\nNew passages grouped by sub-question:\n" + json.dumps(new_passages) + "\nReturn JSON with 'notes' and 'conflicts'.",
+                    "You are the Refinement agent. Extract key facts from retrieved passages and merge into the shared knowledge state. Respond only with a plain JSON object, no tools or function calls.",
+                    "Question: " + question + "\nKnowledge notes so far (facts only):\n" + (json.dumps(state_notes[-10:]) if state_notes else "(none)") + "\nNew passages grouped by sub-question:\n" + json.dumps(new_passages_trimmed) + '\n\nReturn JSON: {"notes": [{"chunk_ids": ["id"], "fact": "key fact"}], "conflicts": []}',
                     ["notes", "conflicts"],
                 )
                 refine = self._json(payload.get("text") if isinstance(payload, dict) else payload)
@@ -206,8 +211,8 @@ class S6cHybridSystem(System):
             try:
                 payload = self.call_json(
                     "s6c_decide",
-                    "You are the Decision agent. Decide whether the collected notes answer the question completely.",
-                    "Question: " + question + "\nNotes:\n" + json.dumps(state_notes) + "\nReturn JSON with 'sufficient' boolean and 'gaps' list of {'question', 'sources'}.",
+                    "You are the Decision agent. Decide whether the collected notes fully answer the question. Respond only with a plain JSON object, no tools or function calls.",
+                    "Question: " + question + "\nNotes:\n" + json.dumps(state_notes) + '\n\nReturn JSON: {"sufficient": true/false, "gaps": [{"question": "missing info", "sources": ["nvd"]}]}',
                     ["sufficient", "gaps"],
                 )
                 decision = self._json(payload.get("text") if isinstance(payload, dict) else payload)

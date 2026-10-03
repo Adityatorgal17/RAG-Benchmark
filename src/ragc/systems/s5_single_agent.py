@@ -95,20 +95,56 @@ class S5SingleAgentSystem(System):
                 break
             
             try:
+                # Summarise latest results compactly to keep prompt short.
+                # Full JSON dumps of chunk texts made the prompt too long and
+                # caused the model to try tool-calling on subsequent steps.
+                if latest:
+                    latest_summary = "\n".join(
+                        f"- [{item.get('chunk_id','')}] {item.get('header','')} | {(item.get('text') or '')[:80]}..."
+                        for item in latest[:tool_k]
+                    )
+                else:
+                    latest_summary = "(none yet — issue a search action first)"
+
+                scratch_summary = "\n".join(
+                    f"- [{s.get('chunk_id','')}] {s.get('fact','')}"
+                    for s in scratch[-6:]  # last 6 facts only
+                ) if scratch else "(empty)"
+
                 payload = self.call_json(
                     f"s5_agent_step_{step_num}",
-                    "You are a research agent investigating a cybersecurity question with a search tool over a fixed document collection. Use a ReAct-style loop: think about what you need to know, then decide to either search for more information or answer based on what you already know.",
-                    f"Question: {question}\n\nScratchpad (facts gathered so far, with chunk ids):\n{json.dumps(scratch) if scratch else '(empty)'}\n\nPrevious search queries: {', '.join(queries) if queries else '(none)'}\n\nLatest search results:\n{json.dumps(latest) if latest else '(none yet)'}\n\nAvailable actions: ['search', 'answer']. To search, provide action=\"search\" and query=\"your query\". To answer, provide action=\"answer\".\n\nReturn JSON with thought, new_facts (when action=search), useful_chunk_ids (optional), action, and query (when action=search).",
-                    ["thought", "new_facts", "useful_chunk_ids", "action"],
+                    "You are a research agent answering a cybersecurity question using a fixed document collection. Respond ONLY with a raw JSON object — no markdown, no function calls, no tools.",
+                    f"Question: {question}\n\nFacts gathered so far:\n{scratch_summary}\n\nPrevious search queries: {', '.join(queries) if queries else '(none)'}\n\nLatest search results:\n{latest_summary}\n\nChoose action=\"search\" to look up more, or action=\"answer\" when ready.\n\nReturn exactly: {{\"thought\": \"...\", \"action\": \"search\" or \"answer\", \"query\": \"search query (only when action=search)\"}}",
+                    ["thought", "action"],
                 )
-                text = payload.get("text") or "{}"
-                if isinstance(text, str):
-                    step = json.loads(text)
-                else:
+                text = payload.get("text") or ""
+                step = None
+                if isinstance(text, str) and text.strip():
+                    try:
+                        step = json.loads(text)
+                    except json.JSONDecodeError:
+                        # Base class already retried — try regex extraction as last resort
+                        import re as _re
+                        m = _re.search(r'\{.*?\}', text, _re.DOTALL)
+                        if m:
+                            try:
+                                step = json.loads(m.group(0))
+                            except json.JSONDecodeError:
+                                pass
+                elif isinstance(text, dict):
                     step = text
             except Exception as e:
-                self.record_error(f"s5_agent_error_{step_num}", e)
-                if step_num == 0 and not queries and self.retriever is not None:
+                # Only log unexpected errors (quota, network).
+                # json_validate_failed / tool_use_failed are handled by base class.
+                err_str = str(e)
+                if not any(k in err_str for k in ("json_validate_failed", "tool_use_failed")):
+                    self.record_error(f"s5_agent_error_{step_num}", e)
+                step = None
+
+            if not isinstance(step, dict):
+                # Could not get a valid step response — do a fallback hybrid search
+                # with the question (or last query) and break out of the agent loop.
+                if self.retriever is not None and not queries:
                     try:
                         queries.append(question)
                         latest = [
@@ -118,34 +154,17 @@ class S5SingleAgentSystem(System):
                                 "text": self.retriever.get_chunk(hit.chunk_id).get("text", ""),
                                 "score": hit.score,
                                 "rank": hit.rank,
-                                "via": hit.via
+                                "via": hit.via,
                             }
                             for hit in self.retriever.hybrid(question, dense_k, bm25_k, tool_k)
                         ]
                         for item in latest:
-                            chunk_id = item.get("chunk_id")
-                            if chunk_id and chunk_id not in candidate_ids:
-                                candidate_ids.append(chunk_id)
-                        self.trace.append({
-                            "tag": f"s5_agent_fallback_search_{step_num}",
-                            "query": question,
-                            "results_count": len(latest) if latest else 0,
-                            "reason": "agent_error"
-                        })
-                        break
-                    except Exception as fallback_err:
-                        self.record_error(f"s5_agent_fallback_error_{step_num}", fallback_err)
-                        break
-                else:
-                    break
-
-            if not isinstance(step, dict):
-                self.errors.append(f"s5_agent_invalid_step_{step_num}: expected object")
-                self.trace.append({
-                    "tag": f"s5_agent_invalid_step_{step_num}",
-                    "step": step_num,
-                    "received": str(step)
-                })
+                            cid = item.get("chunk_id")
+                            if cid and cid not in candidate_ids:
+                                candidate_ids.append(cid)
+                        self.trace.append({"tag": f"s5_fallback_search_{step_num}", "query": question})
+                    except Exception as fe:
+                        self.record_error(f"s5_fallback_error_{step_num}", fe)
                 break
 
             thought = step.get("thought", "")
@@ -169,13 +188,22 @@ class S5SingleAgentSystem(System):
             action, query = self._extract_action_and_query(step)
             
             if not self._validate_action(action, ["search", "answer"]):
-                self.errors.append(f"s5_agent_invalid_action_{step_num}: {action}")
-                self.trace.append({
-                    "tag": f"s5_agent_invalid_action_{step_num}",
-                    "action": action,
-                    "valid_actions": ["search", "answer"],
-                    "step": step_num
-                })
+                # If we already have evidence/queries, treat unrecognized action as "answer"
+                if queries or useful:
+                    self.trace.append({"tag": f"s5_invalid_action_defaulted_to_answer", "action": action, "step": step_num})
+                    break
+                # No evidence yet — do a fallback search and break
+                if self.retriever is not None:
+                    try:
+                        queries.append(question)
+                        latest = [{"chunk_id": h.chunk_id, "header": self.retriever.get_chunk(h.chunk_id).get("header",""), "text": self.retriever.get_chunk(h.chunk_id).get("text",""), "score": h.score, "rank": h.rank, "via": h.via} for h in self.retriever.hybrid(question, dense_k, bm25_k, tool_k)]
+                        for item in latest:
+                            cid = item.get("chunk_id")
+                            if cid and cid not in candidate_ids:
+                                candidate_ids.append(cid)
+                    except Exception:
+                        pass
+                self.trace.append({"tag": f"s5_invalid_action_fallback", "action": action, "step": step_num})
                 break
 
             if action == "answer":
@@ -190,14 +218,9 @@ class S5SingleAgentSystem(System):
 
             if action == "search":
                 if not self._validate_query(query, queries):
-                    self.errors.append(f"s5_agent_invalid_query_{step_num}: {query}")
-                    self.trace.append({
-                        "tag": f"s5_agent_invalid_query_{step_num}",
-                        "query": query,
-                        "previous_queries": queries,
-                        "step": step_num
-                    })
-                    break
+                    # Duplicate or empty query — skip silently and continue the loop
+                    self.trace.append({"tag": f"s5_skip_duplicate_query", "query": query, "step": step_num})
+                    continue
 
                 norm = self._normalize_query(query)
                 if search_count >= max_searches:
